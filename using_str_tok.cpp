@@ -12,6 +12,7 @@ Imports specs
 
 //for cout:
 using namespace std;
+
 int main() {
 	
 	char inputs[50];
