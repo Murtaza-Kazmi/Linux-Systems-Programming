@@ -2,6 +2,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>
+<<<<<<< HEAD
 /*
 Imports specs
 	stdio for printf
@@ -13,12 +14,16 @@ Imports specs
 //for cout:
 using namespace std;
 
+=======
+using namespace std;
+>>>>>>> c462ecfba78b39b96c5dfc5a02e075b37e01c99c
 int main() {
 	
 	char inputs[50];
 	
 	int count = read(0, inputs, 50);
 	
+<<<<<<< HEAD
 	if (errno == EBADF){
 		cout << "Error in read\n";
 		exit(1);
@@ -38,6 +43,14 @@ int main() {
 
 	int total = 0;
 	
+=======
+	//defining pointer, since strtok returns one
+	char* token = strtok(inputs, " ");
+
+
+	int total = 0;
+
+>>>>>>> c462ecfba78b39b96c5dfc5a02e075b37e01c99c
 	while(token != NULL) {
 		
 		total += stoi(token);
@@ -48,4 +61,8 @@ int main() {
 	printf("%d \n", total);
 	
 	return 0;
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> c462ecfba78b39b96c5dfc5a02e075b37e01c99c
