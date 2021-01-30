@@ -56,7 +56,7 @@ int main()
    
 
 	c = a +b;
-	write(STDOUT_FILENO,&c, sizeof(c));
+	write(c,&c, sizeof(c));
 	// returned garbage value
 	
    printf("%d %d", a, b);
