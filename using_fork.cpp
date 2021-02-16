@@ -1,10 +1,13 @@
+//for write, fork
 #include <unistd.h>
 
+//for fork only
 #include <sys/types.h>
 
-
+//for cout
 #include <iostream>
 
+//cout
 using namespace std;
 
 int main() {
