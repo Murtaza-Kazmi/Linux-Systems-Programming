@@ -34,15 +34,13 @@ int main() {
 	
 	write(STDOUT_FILENO, "Hi 2\n", sizeof("Hi 2\n"));
 	//cout << "Hi\n";
-
-
-
-
-
-
-
-
-
-
-	return 0;
+	
+	getchar();
+	//^runs later since it is an I/O call - so the process goes into blocked queue. When enter is pressed, parent  process should get
+	// released followed by child process.
+	
+	
+	write(STDOUT_FILENO, "Hi 3\n", sizeof("Hi 3\n"));
+	
+	//do ps -au
 }
