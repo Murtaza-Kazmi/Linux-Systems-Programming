@@ -27,19 +27,19 @@ bool open_error(int fd){
 int main() {
 	
 	//open fd1
-	int fd1 =  open("d.txt", O_RDWR | O_CREAT, S_IRWXU);
+	int fd1 =  open("d.txt", O_RDWR | O_CREAT | O_TRUNC, S_IRWXU);
 	bool check_open  = open_error(fd1);
 
 	//write fd1
-	write(fd1, "123456", sizeof("123456")-1);
+	write(fd1, "123456", sizeof("123456"));
 	
 	//open fd2
 	int fd2 =  open("d.txt", O_RDWR | O_TRUNC, S_IRWXU);
 	check_open  = open_error(fd2);
 	
 	//write fd2
-	write(fd2, "A", sizeof("A")-1);
-	write(fd2, "910", sizeof("910")-1);
+	write(fd2, "A", sizeof("A"));
+	write(fd2, "910", sizeof("910"));
 	
 	
 	return 0;
