@@ -40,7 +40,7 @@ int main() {
 	// released followed by child process.
 	
 	
-	write(STDOUT_FILENO, "Hi 3\n", sizeof("Hi 3\n"));
+	write(STDOUT_FILENO, "Hi 3\n", sizeof("Hi 3")-1);
 	
 	//do ps -au
 }
