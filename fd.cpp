@@ -25,42 +25,22 @@ bool open_error(int fd){
 }
 
 int main() {
-		
+	
 	//open fd1
-	int fd1 =  open("c.txt", O_RDWR | O_CREAT, S_IRWXU);
+	int fd1 =  open("d.txt", O_RDWR | O_CREAT, S_IRWXU);
 	bool check_open  = open_error(fd1);
-	
-	//fork
-	int pid = fork();
-	
+
 	//write fd1
-	write(fd1, "ABC", sizeof("ABC")-1);
+	write(fd1, "123", sizeof("123")-1);
 	
 	//open fd2
-	int fd2 =  open("c.txt", O_RDWR | O_APPEND, S_IRWXU);
+	int fd2 =  open("d.txt", O_RDWR | O_TRUNC, S_IRWXU);
 	check_open  = open_error(fd2);
 	
-	
 	//write fd2
-	write(fd2, "XYZ", sizeof("XYZ")-1);
+	write(fd2, "A", sizeof("A")-1);
+	write(fd2, "910", sizeof("910")-1);
 	
-	
-	//child section
-	if(pid == 0){
-		int fd3 = open("c.txt", O_RDWR | O_CREAT, S_IRWXU);
-		write(fd3, "123", sizeof("123")-1);
-		
-	}
-	
-	//parent section
-	else if(pid > 0){
-		int fd3  = open("c.txt", O_RDWR | O_CREAT,  S_IRWXU);
-		write(fd3, "LMS", sizeof("LMN")-1);
-	}
-	
-	else {
-		cout << "error\n";
-	}
 	
 	return 0;
 }
