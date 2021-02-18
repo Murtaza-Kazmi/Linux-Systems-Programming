@@ -31,7 +31,7 @@ int main() {
 	bool check_open  = open_error(fd1);
 
 	//write fd1
-	write(fd1, "123", sizeof("123")-1);
+	write(fd1, "123456", sizeof("123456")-1);
 	
 	//open fd2
 	int fd2 =  open("d.txt", O_RDWR | O_TRUNC, S_IRWXU);
