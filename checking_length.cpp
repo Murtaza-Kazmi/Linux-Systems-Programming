@@ -33,7 +33,9 @@ int main(){
 	int b;
 	b -> 20 (garbage value)
 	*b -> 650
-	&b -> 500	
+	&b -> 500
+	
+	
 	*/
 	
 	return 0;
