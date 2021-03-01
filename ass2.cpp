@@ -42,7 +42,7 @@ void copyNormally(char* source, char* destination){
 		exit(1);
 	}
 	
-	int destination_fd = open(destination, O_RDWR | O_CREAT, S_IRWXU);
+int destination_fd = open(destination, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU);
 	
 	if(destination_fd== -1){
 		write(STDIN_FILENO, "Error in opening destination file\n", sizeof("Error in opening destination file\n"));
@@ -87,7 +87,7 @@ void copyFsync(char* source, char* destination){
 		exit(1);
 	}
 	
-	int destination_fd = open(destination, O_RDWR | O_CREAT, S_IRWXU);
+	int destination_fd = open(destination, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU);
 	
 	if(destination_fd== -1){
 		write(STDIN_FILENO, "Error in opening destination file\n", sizeof("Error in opening destination file\n"));
@@ -136,7 +136,7 @@ void copyFDataSync(char* source, char* destination){
 		exit(1);
 	}
 	
-	int destination_fd = open(destination, O_RDWR | O_CREAT, S_IRWXU);
+	int destination_fd = open(destination, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU);
 	
 	if(destination_fd== -1){
 		write(STDIN_FILENO, "Error in opening destination file\n", sizeof("Error in opening destination file\n"));
@@ -185,7 +185,7 @@ void copyOSync(char* source, char* destination){
 		exit(1);
 	}
 	
-	int destination_fd = open(destination, O_RDWR | O_CREAT, S_IRWXU);
+	int destination_fd = open(destination, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU);
 	
 	if(destination_fd== -1){
 		write(STDIN_FILENO, "Error in opening destination file\n", sizeof("Error in opening destination file\n"));
@@ -226,14 +226,14 @@ void copyFSync1Byte(char* source, char* destination){
 	
 	char input[1];
 	
-	int source_fd = open(source, O_RDWR | O_CREAT | O_SYNC, S_IRWXU);
+	int source_fd = open(source, O_RDWR | O_CREAT, S_IRWXU);
 	
 	if(source_fd== -1){
 		write(STDIN_FILENO, "Error in opening source file\n", sizeof("Error in opening source file\n"));
 		exit(1);
 	}
 	
-	int destination_fd = open(destination, O_RDWR | O_CREAT, S_IRWXU);
+	int destination_fd = open(destination, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU);
 	
 	if(destination_fd== -1){
 		write(STDIN_FILENO, "Error in opening destination file\n", sizeof("Error in opening destination file\n"));
