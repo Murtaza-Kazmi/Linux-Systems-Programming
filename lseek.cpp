@@ -23,7 +23,6 @@ int main(){
 	int fd = open("a.txt",  O_RDWR | O_CREAT, S_IRWXU);
 	
 	if(fd < 0){
-		
 		perror("Error in open");
 		//exit(1);
 	}
@@ -31,6 +30,7 @@ int main(){
 	int writeResult = write(fd, buffer, sizeof(buffer));
 	
 	printf("%ld\n",sizeof(buffer));
+	
 	if(writeResult < 0){
 		perror("Error in write");
 		//exit(1);
@@ -40,7 +40,7 @@ int main(){
 	
 	int output = read(fd, &b, 1);
 	
-	printf("%c\n",b);
+	sprintf("%c\n",b);
 
 
 
