@@ -48,6 +48,10 @@ int main(){
 	char arr2[3];
 	int readResultChild = read(fds[0], arr2, 3);
 	
+	if(readResultChild == -1){
+		perror("Child: Error in read");
+	}
+	
 	char* token = strtok(arr2, " ");
 
 	int total = 0;
@@ -60,8 +64,7 @@ int main(){
 	}
 	
 	printf("%d \n", total);
-	
-	//if (write(1, arr2, 3) == -1) perror("Child: Error in write");
+
 	
 	
 		
