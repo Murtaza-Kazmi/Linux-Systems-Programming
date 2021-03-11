@@ -63,19 +63,17 @@ int main(){
 		
 	}
 	
-	printf("%d \n", total);
-
+	//printf("%d \n", total);
 	
-	
+	char buffer[30];
+	sprintf(buffer, "%d", total);
+	puts(buffer);
 		
 	}
 
 	else{
 		perror("Fork failed in source code");
 	}
-
-
-
 
 
 	return 0;
