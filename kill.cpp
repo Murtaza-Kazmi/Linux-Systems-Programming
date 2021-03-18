@@ -22,7 +22,7 @@ int main(int argc, char* argv[]){
 
 	int pid = atoi(argv[2]);
 	
-	cout << pid << '\n';
+	cout << "Killing process with id: " << pid << '\n';
 	
 	kill(pid, SIGTERM);
 	}
