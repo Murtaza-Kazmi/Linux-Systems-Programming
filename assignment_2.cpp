@@ -56,7 +56,7 @@ int main(){
 		// perror("Server: Error in write");
 	    // }
 
-        
+
     }
     else if(pid > 0){ // parent (client) ---------------------------------------------------------------------------------
         
@@ -132,10 +132,35 @@ int main(){
             int total = 0;
             bool canAdd = true;
             char* current;
+            
+            
             // for loop begins ----------------------------
             for(int i = 1; i < argc; i++){
                 canAdd = true;
                 current = argv[i];
+
+                sprintf(buff1, "arg: %s.", argv[i]);
+                puts(buff1);
+                // sprintf(buff1, "arg: %ld.", sizeof(buff1));
+                // puts(buff1);
+
+                sprintf(buff1, "Type of arg: %s.", typeid(argv[i]).name());
+                puts(buff1);
+                sprintf(buff1, "Size of arg: %ld.", sizeof(argv[i]));
+                puts(buff1);
+                sprintf(buff1, "Type of cur: %s.", typeid(current).name());
+                puts(buff1);
+                sprintf(buff1, "Type of *cur: %s.", typeid(*current).name());
+                puts(buff1);
+                sprintf(buff1, "Type of &cur: %s.", typeid(&current).name());
+                puts(buff1);
+                sprintf(buff1, "& size: %ld.", sizeof(&current));
+                puts(buff1);
+                sprintf(buff1, "* size: %ld.", sizeof(*current));
+                puts(buff1);
+                sprintf(buff1, "normal size: %ld.", sizeof(current));
+                puts(buff1);
+
                 for(int j = 0; j < sizeof(*current); j++){
                     if(!isdigit(current[j])){
                         canAdd = false;
