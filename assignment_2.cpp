@@ -4,6 +4,8 @@ run app_name (give success/error message)
 exit app_name
 add 1 2 
 sub 2 3 4
+div 2 3 4
+mul 3 4 5
 */
 
 // preprocessor directives -------------------------------------------------------------------------------
@@ -15,7 +17,7 @@ using namespace std;
 //to compare char*s
 #include <cstring>
 
-// for system calls
+// for system calls: pipe
 #include <unistd.h>
 
 // for strtok
@@ -24,6 +26,23 @@ using namespace std;
 // main --------------------------------------------------------------------------------------------------
 
 int main(){
+    
+    //initializing two pipes for smoking input output -------------------------------
+    int fdChildToParent[2];
+	int fdParentToChild[2];
+	
+	int pipeResult1 = pipe(fdChildToParent);
+    if(pipeResult1 < 0){
+        perror("Error in first pipe initialization.");
+        exit(1);
+    }
+
+	int pipeResult2 = pipe(fdParentToChild);
+    if(pipeResult2 < 0){
+        perror("Error in second pipe initialization.");
+        exit(1);
+    }
+    // initialized pipes -------------------------------------------------------------
 	
 	//buffer used for sprintf 	
     char buff1[100];
@@ -34,6 +53,9 @@ int main(){
     int argc;
     char* argv[100];
     int noOfBytesRead;
+
+    // int pid = fork(); // forked here -----------------------------------------------------------------------------
+
 
     while(true){
 
@@ -73,11 +95,12 @@ int main(){
 
         //char* is pointer to a sequence of chars in memory (ends with '\0')
         char* requirement = argv[0];
-
-        sprintf(buff1, "Number of arguments = %d", argc);
-        puts(buff1);
+        char* requirement2 = argv[1];
 
         //sprintf helps write formatted output
+        sprintf(buff1, "Number of arguments = %d", argc);
+        puts(buff1);
+        
         if(strcmp(requirement, "add") == 0){
             sprintf(buff1, "Requirement to %s received.", requirement);
             puts(buff1);
@@ -89,10 +112,8 @@ int main(){
             for(int i = 1; i < argc; i++){
                 canAdd = true;
                 current = argv[i];
-                for(int j = 0; j < sizeof(*current)-1; j++){
+                for(int j = 0; j < sizeof(*current); j++){
                     if(!isdigit(current[j])){
-                        sprintf(buff1, "Here %c", current[j]);
-                        puts(buff1);
                         canAdd = false;
                         break;
                     }
@@ -127,10 +148,9 @@ int main(){
             for(int i = 1; i < argc; i++){
                 canAdd = true;
                 current = argv[i];
-                for(int j = 0; j < sizeof(*current)-1; j++){
+                
+                for(int j = 0; j < sizeof(*current); j++){
                     if(!isdigit(current[j])){
-                        sprintf(buff1, "Here %c", current[j]);
-                        puts(buff1);
                         canAdd = false;
                         break;
                     }
@@ -155,6 +175,93 @@ int main(){
                 continue;
             }
         }
+        else if(strcmp(requirement, "mul") == 0){
+            sprintf(buff1, "Requirement to %s received.", requirement);
+            puts(buff1);
+
+            int total = 1;
+            bool canAdd = true;
+            char* current;
+            // for loop begins ----------------------------
+            for(int i = 1; i < argc; i++){
+                canAdd = true;
+                current = argv[i];
+                for(int j = 0; j < sizeof(*current); j++){
+                    if(!isdigit(current[j])){
+                        canAdd = false;
+                        break;
+                    }
+                    sprintf(buff1, "Here %d", current[j]);
+                    puts(buff1);
+                }
+                if(canAdd){
+                    total = total * atoi(argv[i]);
+                }
+                else{
+                    break;
+                }
+            }
+            // for loop ended ----------------------------
+
+            if(canAdd){
+                sprintf(buff1, "The total is: %d.", total);
+                puts(buff1);
+            }
+            else{
+                sprintf(buff1, "Invalid input. Please enter numbers only.");
+                puts(buff1);
+                continue;
+            }
+        }
+        else if(strcmp(requirement, "div") == 0){
+            sprintf(buff1, "Requirement to %s received.", requirement);
+            puts(buff1);
+
+            float total = 1;
+            bool canAdd = true;
+            char* current;
+            bool divisionByZero = false;
+            // for loop begins ----------------------------
+            for(int i = 1; i < argc; i++){
+                canAdd = true;
+                current = argv[i];
+                for(int j = 0; j < sizeof(*current); j++){
+                    if(!isdigit(current[j])){
+                        canAdd = false;
+                        break;
+                    }
+                }
+                if(canAdd){
+                    if(atoi(argv[i]) == 0) {
+                        divisionByZero = true;    
+                        break;
+                    }
+                    else{
+                        if(i == 1) total = atoi(argv[i]);
+                        else total = total/atoi(argv[i]);
+                    }
+                }
+                else{
+                    break;
+                }
+            }
+            // for loop ended ----------------------------
+
+            if(canAdd){
+                sprintf(buff1, "The total is: %f", total);
+                puts(buff1);
+                continue;
+            }
+            if(divisionByZero){
+                sprintf(buff1, "Invalid input. Division by zero not possible.");
+                puts(buff1);
+                continue;
+            }
+            sprintf(buff1, "Invalid input. Please enter numbers only.");
+            puts(buff1);
+            continue;
+            
+        }
         else if(strcmp(requirement, "run") == 0){
             sprintf(buff1, "Requirement to %s received.", requirement);
             puts(buff1);
@@ -164,9 +271,9 @@ int main(){
             puts(buff1);
         }
         else if(strcmp(requirement, "end") == 0){
-            sprintf(buff1, "Exiting program.");
-            puts(buff1);
-            exit(1);
+                sprintf(buff1, "Program terminated.");
+                puts(buff1);
+                exit(1);
         }
         else{
             sprintf(buff1, "Invalid requirement. Please re-enter.");
