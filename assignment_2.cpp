@@ -1,7 +1,7 @@
 
 /* Problem Statement -------------------------------------------------------------------------------------
 run app_name (give success/error message)
-exit app_name
+exit (exits entire app)
 add 1 2 
 sub 2 3 4
 div 2 3 4
@@ -28,37 +28,61 @@ using namespace std;
 int main(){
     
     //initializing two pipes for smoking input output -------------------------------
-    int fdChildToParent[2];
-	int fdParentToChild[2];
+    int fdClientToServer[2];
+	int fdServerToClient[2];
 	
-	int pipeResult1 = pipe(fdChildToParent);
+	int pipeResult1 = pipe(fdClientToServer);
     if(pipeResult1 < 0){
         perror("Error in first pipe initialization.");
         exit(1);
     }
 
-	int pipeResult2 = pipe(fdParentToChild);
+	int pipeResult2 = pipe(fdServerToClient);
     if(pipeResult2 < 0){
         perror("Error in second pipe initialization.");
         exit(1);
     }
     // initialized pipes -------------------------------------------------------------
 	
-	//buffer used for sprintf 	
-    char buff1[100];
+	
 
-    //buffer used for read 	
-    char buff0[100];
+    int pid = fork(); // kun faya kun -----------------------------------------------------------------------------------
 
-    int argc;
-    char* argv[100];
-    int noOfBytesRead;
+    //reversed roles
+    if(pid == 0){ // child (server) --------------------------------------------------------------------------------------
+        // char arr[sizeof("Connection established.")] = "Connection established.";
+        // int writeResult = write(fdServerToClient[1], arr, sizeof(arr)-1);
+	    // if(writeResult < 0){
+		// perror("Server: Error in write");
+	    // }
 
-    // int pid = fork(); // forked here -----------------------------------------------------------------------------
+        
+    }
+    else if(pid > 0){ // parent (client) ---------------------------------------------------------------------------------
+        
+        //buffer used for sprintf 	
+        char buff1[100];
 
+        //buffer used for read 	
+        char buff0[100];
 
-    while(true){
+        int argc;
+        char* argv[100];
+        int noOfBytesRead;
 
+        // char arr2[100];
+        // int readResultChild = read(fdServerToClient[0], arr2, sizeof(arr2)-1);
+        
+        // if(readResultChild == -1){
+        //     perror("Client: Error in read");
+        // }
+        
+        // sprintf(buff1, "%s", arr2);
+        // puts(buff1);
+
+        while(true){
+
+        
         noOfBytesRead = read(0, buff0, 100);
 
         if(noOfBytesRead == -1){
@@ -78,7 +102,7 @@ int main(){
         //added input delimited by single space to argv array
 
         // arg count:
-        int argc = ind;
+        argc = ind;
 
         if(argc < 2){
             sprintf(buff1, "Invalid number of arguments. Please enter again.");
@@ -280,6 +304,11 @@ int main(){
             puts(buff1);
         }
      }
+    }
+    else{
+        perror("fork() gave an error.");
+        exit(1);
+    }
 
     return 0;
 }
