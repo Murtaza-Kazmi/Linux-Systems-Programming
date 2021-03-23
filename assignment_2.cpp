@@ -1,11 +1,11 @@
 
-/* Problem Statement -------------------------------------------------------------------------------------
-run app_name (give success/error message)
+/* CLI input info -------------------------------------------------------------------------------------
+run app_name (runs that application)
 exit (exits entire app)
-add 1 2 
-sub 2 3 4
-div 2 3 4
-mul 3 4 5
+add 1 2 (adds all integers)
+sub 2 3 4 (subtracts first integer from the rest)
+div 2 3 4 (divides first integer from the rest)
+mul 3 4 5 (multiplies all integers)
 */
 
 // preprocessor directives -------------------------------------------------------------------------------
@@ -17,7 +17,7 @@ using namespace std;
 //to compare char*s
 #include <cstring>
 
-// for system calls: pipe
+// for system calls: pipe, exec
 #include <unistd.h>
 
 // for strtok
@@ -43,37 +43,42 @@ int main(){
         perror("Error in second pipe initialization.");
         exit(1);
     }
+
+    int size = 10000;
+
     // initialized pipes -------------------------------------------------------------
 
     int pid = fork(); // kun faya kun -----------------------------------------------------------------------------------
 
     
     if(pid == 0){ // child (server) --------------------------------------------------------------------------------------
-        // char arr[sizeof("Connection established.")] = "Connection established.";
-        // int writeResult = write(fdServerToClient[1], arr, sizeof(arr)-1);
-	    // if(writeResult < 0){
-		// perror("Server: Error in write");
-	    // }
 
         while(true){
-
+            
+        int responseAttempt;
         int argc;
-        char* argv[100];
+        char* argv[size];
 
         //buffer used for read 	
-        char buff0[100];
+        char buff0[size];
 
         //buffer used for sprintf 	
-        char buff1[100];
+        char buff1[size];
 
         //there could be garbage values in buff0
-        for(int i = 0; i < 100; i++){
+        for(int i = 0; i < size; i++){
             buff0[i] = '\0';
         }
 
         int readResult = read(fdClientToServer[0],  buff0, sizeof(buff0)-1);
+        
+        if(readResult < 0){
+            sprintf(buff1, "Server: error in reading pipe client to server.");
+            responseAttempt = write(fdServerToClient[1], buff1, sizeof(buff1)-1);
+            continue;
+        }
 
-        //adding input delimited by single space to argv array
+        //adds input delimited by single space to argv array
         char* token = strtok(buff0, " ");
         int ind = 0;
         while(token != NULL) {
@@ -83,12 +88,22 @@ int main(){
             token = strtok(NULL, " "); 
             
         }
-        //added input delimited by single space to argv array
 
         // arg count:
         argc = ind;
 
-        
+        if(argc == 1){
+            if(strcmp(argv[0], "exit") == 0){
+                sprintf(buff1, "Exit!");
+                responseAttempt = write(fdServerToClient[1], buff1, sizeof(buff1)-1);
+                exit(1);
+            }
+            else{
+                sprintf(buff1, "Invalid number of arguments. Please enter again.");
+                responseAttempt = write(fdServerToClient[1], buff1, sizeof(buff1)-1);
+                continue;
+            }
+        }
         // prints input token line by line
         // for(int i = 0; i < argc; i++){
         //     //s means char*
@@ -106,8 +121,6 @@ int main(){
             sprintf(buff1, "Invalid number of arguments. Please enter again.");
         }
         else if(strcmp(requirement, "add") == 0){
-            sprintf(buff1, "Requirement to %s received.", requirement);
-            puts(buff1);
 
             int total = 0;
             bool canAdd = true;
@@ -120,7 +133,7 @@ int main(){
                 canAdd = true;
                 current = argv[i];
 
-                for(int j = 0; j < current.length()-1; j++){
+                for(int j = 0; j < current.length(); j++){
                     if(!isdigit(argv[i][j])){
                         canAdd = false;
                         break;
@@ -143,8 +156,6 @@ int main(){
             }
         }
         else if(strcmp(requirement, "sub") == 0){
-            sprintf(buff1, "Requirement to %s received.", requirement);
-            puts(buff1);
 
             int total = 0;
             bool canAdd = true;
@@ -154,7 +165,7 @@ int main(){
                 canAdd = true;
                 current = argv[i];
                 
-                for(int j = 0; j < current.length()-1; j++){
+                for(int j = 0; j < current.length(); j++){
                     if(!isdigit(argv[i][j])){
                         canAdd = false;
                         break;
@@ -178,8 +189,6 @@ int main(){
             }
         }
         else if(strcmp(requirement, "mul") == 0){
-            sprintf(buff1, "Requirement to %s received.", requirement);
-            puts(buff1);
 
             int total = 1;
             bool canAdd = true;
@@ -188,7 +197,7 @@ int main(){
             for(int i = 1; i < argc; i++){
                 canAdd = true;
                 current = argv[i];
-                for(int j = 0; j < current.length()-1; j++){
+                for(int j = 0; j < current.length(); j++){
                     if(!isdigit(argv[i][j])){
                         canAdd = false;
                         break;
@@ -211,9 +220,6 @@ int main(){
             }
         }
         else if(strcmp(requirement, "div") == 0){
-            sprintf(buff1, "Requirement to %s received.", requirement);
-            puts(buff1);
-
             float total = 1;
             bool canAdd = true;
             string current;
@@ -221,7 +227,7 @@ int main(){
             for(int i = 1; i < argc; i++){
                 canAdd = true;
                 current = argv[i];
-                for(int j = 0; j < current.length()-1; j++){
+                for(int j = 0; j < current.length(); j++){
                     if(!isdigit(argv[i][j])){
                         canAdd = false;
                         break;
@@ -251,14 +257,15 @@ int main(){
             }
         }
         else if(strcmp(requirement, "run") == 0){
-            sprintf(buff1, "Requirement to run %s received.", argv[1]);
-            puts(buff1);
             
             string current = argv[1];
-            char name[current.length()-1];
+            char name[current.length()+1];
 
-            for(int i = 0; i < current.length(); i++){
+            for(int i = 0; i < current.length()+1; i++){
                 name[i] = argv[1][i];
+                if(i == current.length()){
+                    name[i] = '\0';
+                }
             }
 
             int fdServerChildToServer[2];
@@ -278,22 +285,23 @@ int main(){
             else if(newPID == 0){ // child
                 sprintf(buff1, "Success");
                 int writeRes = write(fdServerChildToServer[1], buff1, sizeof(buff1)-1);
-                // call exec, make it generic
-                // sprintf(buff1, "/usr/bin/%s", name);
-                // puts(buff1);
-                // sprintf(buff1, "/usr");
-                int execResult = execlp(name, name,  NULL);
+                
+                // call exec
+                int execResult = execlp(name, name, NULL);
+
+                //if these lines run, execResult has returned -1 due to error
                 sprintf(buff1, "Error");
                 writeRes = write(fdServerChildToServer[1], buff1, sizeof(buff1)-1);
-                //end this process
+
+                //terminate this process
                 exit(1);
             }
             else{
-            //parent - keep it running
+                //parent - keep it running
                 int writeRes;
                 int readRes;
                 bool errorReceived = false;
-                for(int i = 0; i < 1000; i++){
+                for(int i = 0; i < 10000; i++){
                     sprintf(buff1, "Parent");
                     writeRes = write(fdServerChildToServer[1], buff1, sizeof(buff1)-1);
                     readRes = read(fdServerChildToServer[0], buff0, sizeof(buff0)-1);
@@ -314,25 +322,16 @@ int main(){
             
         }
         else if(strcmp(requirement, "exit") == 0){
-            sprintf(buff1, "Requirement to %s received.", requirement);
-            puts(buff1);
             sprintf(buff1, "Exit!");
-            int responseAttempt = write(fdServerToClient[1], buff1, sizeof(buff1)-1);
+            responseAttempt = write(fdServerToClient[1], buff1, sizeof(buff1)-1);
             exit(1);
-        }
-        else if(strcmp(requirement, "end") == 0){
-                // sprintf(buff1, "Program terminated.");
-                // puts(buff1);
-                // exit(1);
         }
         else{
             sprintf(buff1, "Invalid requirement. Please re-enter.");
         }
 
-        int responseAttempt = write(fdServerToClient[1], buff1, sizeof(buff1)-1);
-        if(responseAttempt < 0){
-            perror("Server: error in responding to client.");
-        } 
+        responseAttempt = write(fdServerToClient[1], buff1, sizeof(buff1)-1);
+
         }
 
     }
@@ -340,34 +339,23 @@ int main(){
     // parent (client) ---------------------------------------------------------------------------------
 
     else if(pid > 0){ 
-        
-        // char arr2[100];
-        // int readResultChild = read(fdServerToClient[0], arr2, sizeof(arr2)-1);
-        
-        // if(readResultChild == -1){
-        //     perror("Client: Error in read");
-        // }
-        
-        // sprintf(buff1, "%s", arr2);
-        // puts(buff1);
 
         while(true){
 
         //buffer used for read 	
-        char buff0[100];
+        char buff0[size];
 
         //buffer used for sprintf 	
-        char buff1[100];
+        char buff1[size];
 
         //reads until enter, so no garbage value
-        int noOfBytesRead = read(0, buff0, 100);
+        int noOfBytesRead = read(0, buff0, size);
 
         if(noOfBytesRead == -1){
             perror(("Error in read."));
         }
         
         // send input to server (sends the bytes inputted)
-        // why does read not give error for last val?
         int writeResult = write(fdClientToServer[1], buff0, noOfBytesRead-1);
         if(writeResult < 0){
             perror("Error in writing from server to client.");
@@ -381,9 +369,7 @@ int main(){
 
         sprintf(buff1, "%s", buff0);
         if(strcmp(buff1, "Exit!") == 0){
-            sprintf(buff1, "Server terminated.");
-            puts(buff1);
-            sprintf(buff1, "Client terminated.");
+            sprintf(buff1, "Terminated.");
             puts(buff1);
             exit(1);
         }
