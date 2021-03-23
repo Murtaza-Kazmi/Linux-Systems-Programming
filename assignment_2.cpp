@@ -71,7 +71,7 @@ int main(){
         }
 
         int readResult = read(fdClientToServer[0],  buff0, sizeof(buff0)-1);
-        
+
         if(readResult < 0){
             sprintf(buff1, "Server: error in reading pipe client to server.");
             responseAttempt = write(fdServerToClient[1], buff1, sizeof(buff1)-1);
@@ -99,7 +99,7 @@ int main(){
                 exit(1);
             }
             else{
-                sprintf(buff1, "Invalid number of arguments. Please enter again.");
+                sprintf(buff1, "Invalid requirements. Please re-enter.");
                 responseAttempt = write(fdServerToClient[1], buff1, sizeof(buff1)-1);
                 continue;
             }
@@ -117,10 +117,7 @@ int main(){
         char* requirement2 = argv[1];
 
 
-        if(argc < 2){
-            sprintf(buff1, "Invalid number of arguments. Please enter again.");
-        }
-        else if(strcmp(requirement, "add") == 0){
+        if(strcmp(requirement, "add") == 0){
 
             int total = 0;
             bool canAdd = true;
@@ -152,7 +149,7 @@ int main(){
                 sprintf(buff1, "The total is: %d.", total); 
             }
             else{
-                sprintf(buff1, "Invalid input. Please enter numbers only.");
+                sprintf(buff1, "Invalid input. Please enter valid numbers only.");
             }
         }
         else if(strcmp(requirement, "sub") == 0){
@@ -185,7 +182,7 @@ int main(){
                 sprintf(buff1, "The total is: %d.", total);
             }
             else{
-                sprintf(buff1, "Invalid input. Please enter numbers only.");
+                sprintf(buff1, "Invalid input. Please enter valid numbers only.");
             }
         }
         else if(strcmp(requirement, "mul") == 0){
@@ -216,7 +213,7 @@ int main(){
                 sprintf(buff1, "The total is: %d.", total);
             }
             else{
-                sprintf(buff1, "Invalid input. Please enter numbers only.");
+                sprintf(buff1, "Invalid input. Please enter valid numbers only.");
             }
         }
         else if(strcmp(requirement, "div") == 0){
@@ -233,15 +230,19 @@ int main(){
                         break;
                     }
                 }
+                //is an integer
                 if(canAdd){
-                    if(atoi(argv[i]) == 0) {
-                        canAdd = false;    
-                        break;
-                    }
-                    else{
-                        if(i == 1) total = atoi(argv[i]);
+                        if(i == 1 && argv[i] == 0) total = 0;
+                        else if(i == 1) total = atoi(argv[i]);
+                        else if(total == 0.0){
+                            total = 0;
+                        }
+                        else if(atoi(argv[i]) == 0){
+                            canAdd = false;
+                            break;
+                        }
                         else total = total/atoi(argv[i]);
-                    }
+                    
                 }
                 else{
                     break;
@@ -253,7 +254,7 @@ int main(){
                 sprintf(buff1, "The total is: %f.", total);
             }
             else{
-                sprintf(buff1, "Invalid input. Please enter numbers only.");
+                sprintf(buff1, "Invalid input. Please enter valid numbers only.");
             }
         }
         else if(strcmp(requirement, "run") == 0){
@@ -349,7 +350,13 @@ int main(){
         char buff1[size];
 
         //reads until enter, so no garbage value
-        int noOfBytesRead = read(0, buff0, size);
+        int noOfBytesRead = read(0, buff0, size-1);
+        
+        if(buff0[0] == '\n'){
+            sprintf(buff1, "Invalid number of arguments. Please enter again.");
+            puts(buff1);
+            continue;
+        }
 
         if(noOfBytesRead == -1){
             perror(("Error in read."));
