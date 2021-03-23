@@ -290,11 +290,24 @@ int main(){
             }
             else{
             //parent - keep it running
-                sprintf(buff1, "Parent");
-                int writeRes = write(fdServerChildToServer[1], buff1, sizeof(buff1)-1);
-                int readRes = read(fdServerChildToServer[0], buff1, sizeof(buff1)-1);
-                readRes = read(fdServerChildToServer[0], buff1, sizeof(buff1)-1);
-                readRes = read(fdServerChildToServer[0], buff1, sizeof(buff1)-1);
+                int writeRes;
+                int readRes;
+                bool errorReceived = false;
+                for(int i = 0; i < 1000; i++){
+                    sprintf(buff1, "Parent");
+                    writeRes = write(fdServerChildToServer[1], buff1, sizeof(buff1)-1);
+                    readRes = read(fdServerChildToServer[0], buff0, sizeof(buff0)-1);
+                    if(strcmp(buff0, "Error") == 0){
+                        errorReceived = true;
+                        break;
+                    }
+                }
+                if(errorReceived){
+                    sprintf(buff1, "Failure.");
+                }
+                else{
+                    sprintf(buff1, "Success.");
+                }
             }
             }
             
@@ -303,6 +316,9 @@ int main(){
         else if(strcmp(requirement, "exit") == 0){
             sprintf(buff1, "Requirement to %s received.", requirement);
             puts(buff1);
+            sprintf(buff1, "Exit!");
+            int responseAttempt = write(fdServerToClient[1], buff1, sizeof(buff1)-1);
+            exit(1);
         }
         else if(strcmp(requirement, "end") == 0){
                 // sprintf(buff1, "Program terminated.");
@@ -364,8 +380,16 @@ int main(){
         }
 
         sprintf(buff1, "%s", buff0);
+        if(strcmp(buff1, "Exit!") == 0){
+            sprintf(buff1, "Server terminated.");
+            puts(buff1);
+            sprintf(buff1, "Client terminated.");
+            puts(buff1);
+            exit(1);
+        }
+        else{
         puts(buff1);
-
+        }
         
 
         // while ends below
