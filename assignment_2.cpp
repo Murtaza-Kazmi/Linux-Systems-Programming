@@ -260,13 +260,10 @@ int main(){
         else if(strcmp(requirement, "run") == 0){
             
             string current = argv[1];
-            char name[current.length()+1];
+            char name[current.length()];
 
-            for(int i = 0; i < current.length()+1; i++){
+            for(int i = 0; i < current.length(); i++){
                 name[i] = argv[1][i];
-                if(i == current.length()){
-                    name[i] = '\0';
-                }
             }
 
             int fdServerChildToServer[2];
@@ -288,7 +285,9 @@ int main(){
                 int writeRes = write(fdServerChildToServer[1], buff1, sizeof(buff1)-1);
                 
                 // call exec
-                int execResult = execlp(name, name, NULL);
+                sprintf(buff1, "%s", name);
+                // int execResult = execlp(name, name, NULL);
+                int execResult = execlp(buff1, buff1, NULL);
 
                 //if these lines run, execResult has returned -1 due to error
                 sprintf(buff1, "Error");
@@ -384,6 +383,18 @@ int main(){
         puts(buff1);
         }
         
+
+        //testing for error handling
+        // errno = -1;
+        sprintf(buff1, "this %s", strerror(errno));
+        puts(buff1);
+        // sprintf(buff1, "%d", strcmp(strerror(errno), "Unknown error -1") == 0);
+        // puts(buff1);
+
+        // if(true == 1){
+        //     sprintf(buff1, "hello");
+        //     puts(buff1);
+        // }
 
         // while ends below
      }
