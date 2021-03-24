@@ -10,7 +10,7 @@ mul 3 4 5 (multiplies all integers)
 
 // preprocessor directives -------------------------------------------------------------------------------
 
-//to use string:
+//to use string, sprintf
 #include <string>
 using namespace std;
 
@@ -259,12 +259,19 @@ int main(){
         }
         else if(strcmp(requirement, "run") == 0){
             
-            string current = argv[1];
-            char name[current.length()];
+            char* current = argv[1];
 
-            for(int i = 0; i < current.length(); i++){
+            int l = strlen(current);
+
+            char name[l+1];
+
+            // sprintf(buff1, "res is %d and of string is %d", l, l2);
+            // puts(buff1);
+
+            for(int i = 0; i < l; i++){
                 name[i] = argv[1][i];
             }
+            name[l] = '\0';
 
             int fdServerChildToServer[2];
 
@@ -383,11 +390,32 @@ int main(){
         puts(buff1);
         }
         
+        
 
         //testing for error handling
+
         // errno = -1;
-        sprintf(buff1, "this %s", strerror(errno));
-        puts(buff1);
+        // sprintf(buff1, "this %s", strerror(errno));
+        
+        // char buff2[size];
+        // for(int i = 0; i < size; i++){
+        //     buff2[i] = '\0';
+        // }
+        // int x = sizeof(buff2);
+        // printf(buff2, "it is this %ld", x);
+        // puts(buff2);
+
+        // sprintf(buff1, "len is %ld", strlen("abcd"));
+        // puts(buff1);
+
+        // sprintf(buff0, "12");
+
+        // printf(buff1, "size is %ld", sizeof("abcd"));
+        // puts(buff1);
+        // sprintf(buff1, "len is %ld", strlen("abcd"));
+        // puts(buff1);
+
+    
         // sprintf(buff1, "%d", strcmp(strerror(errno), "Unknown error -1") == 0);
         // puts(buff1);
 
