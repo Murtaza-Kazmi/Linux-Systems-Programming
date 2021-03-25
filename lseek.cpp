@@ -20,27 +20,34 @@ int main(){
 	
 	char b;
 	
-	int fd = open("a.txt",  O_RDWR | O_CREAT, S_IRWXU);
+	int fd = open("a.txt",  O_RDWR | O_CREAT | O_APPEND, S_IRWXU);
 	
 	if(fd < 0){
 		perror("Error in open");
-		//exit(1);
+		// exit(1);
 	}
 
-	int writeResult = write(fd, buffer, sizeof(buffer));
+	char arr[8];
+	int z = lseek(fd, 10, SEEK_CUR);
+	int z2 = read(fd, arr, 1);
+	char buff[30];
+	sprintf(buff, "this %s", arr);
+	puts(buff);
+
+	// int writeResult = write(fd, buffer, sizeof(buffer));
 	
-	printf("%ld\n",sizeof(buffer));
+	// printf("%ld\n",sizeof(buffer));
 	
-	if(writeResult < 0){
-		perror("Error in write");
-		//exit(1);
-	}
+	// if(writeResult < 0){
+	// 	perror("Error in write");
+	// 	// exit(1);
+	// }
 	
-	int r = lseek(fd, 3, SEEK_CUR);
+	// int r = lseek(fd, 3, SEEK_CUR);
 	
-	int output = read(fd, &b, 1);
+	// int output = read(fd, &b, 1);
 	
-	sprintf("%c\n",b);
+	// sprintf("%c\n",b);
 
 
 

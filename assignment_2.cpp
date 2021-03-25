@@ -11,8 +11,7 @@ mul 3 4 5 (multiplies all integers)
 // preprocessor directives -------------------------------------------------------------------------------
 
 //to use string, sprintf
-#include <string>
-using namespace std;
+ #include <string>
 
 //to compare char*s
 #include <cstring>
@@ -20,8 +19,6 @@ using namespace std;
 // for system calls: pipe, exec
 #include <unistd.h>
 
-// for strtok
-#include <string.h>
 
 // main --------------------------------------------------------------------------------------------------
 
@@ -122,7 +119,7 @@ int main(){
             int total = 0;
             bool canAdd = true;
             //used to calculate length
-            string current;
+            char* current;
             
             
             // for loop begins ----------------------------
@@ -130,7 +127,7 @@ int main(){
                 canAdd = true;
                 current = argv[i];
 
-                for(int j = 0; j < current.length(); j++){
+                for(int j = 0; j < strlen(current); j++){
                     if(!isdigit(argv[i][j])){
                         canAdd = false;
                         break;
@@ -156,13 +153,13 @@ int main(){
 
             int total = 0;
             bool canAdd = true;
-            string current;
+            char* current;
             // for loop begins ----------------------------
             for(int i = 1; i < argc; i++){
                 canAdd = true;
                 current = argv[i];
                 
-                for(int j = 0; j < current.length(); j++){
+                for(int j = 0; j < strlen(current); j++){
                     if(!isdigit(argv[i][j])){
                         canAdd = false;
                         break;
@@ -189,12 +186,12 @@ int main(){
 
             int total = 1;
             bool canAdd = true;
-            string current;
+            char* current;
             // for loop begins ----------------------------
             for(int i = 1; i < argc; i++){
                 canAdd = true;
                 current = argv[i];
-                for(int j = 0; j < current.length(); j++){
+                for(int j = 0; j < strlen(current); j++){
                     if(!isdigit(argv[i][j])){
                         canAdd = false;
                         break;
@@ -219,12 +216,12 @@ int main(){
         else if(strcmp(requirement, "div") == 0){
             float total = 1;
             bool canAdd = true;
-            string current;
+            char* current;
             // for loop begins ----------------------------
             for(int i = 1; i < argc; i++){
                 canAdd = true;
                 current = argv[i];
-                for(int j = 0; j < current.length(); j++){
+                for(int j = 0; j < strlen(current); j++){
                     if(!isdigit(argv[i][j])){
                         canAdd = false;
                         break;

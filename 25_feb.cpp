@@ -30,10 +30,11 @@ int main(){
 	
 	
 	//read permission only and trying write
-	int o = open("f.txt", O_RDONLY |  O_CREAT);
+	char name[5] = "../f";
+	int o = open(name, O_RDWR |  O_CREAT);
 	
 	if(o == -1){
-		printf("Error in open");
+		perror("error in open");
 		exit(1);
 	}
 	
