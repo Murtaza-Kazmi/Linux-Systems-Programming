@@ -13,17 +13,7 @@ mul 3 4 5 (multiplies all integers)
 
  Kill <pid> | Kill <name>
 
-The list keeps track of elapsed time / execution time.
-
-Notes
-exit state mein defunc
-you dont know when parent will ask for status so it stays there
-child terminate  parent hasnt picked up = zombie processes = orphan processes
-when os hands over the status or the parent picks it up, child no longer exists
-memory would get exhausted
-in all cases (crash, etc) the same is true
-if parent terminates, child is reparented to init, which is useless for init but it picks the status so the process is destroyed from exit
-waitpit is used
+The lists keep track of elapsed time / execution time.
 
 */
 
@@ -38,7 +28,7 @@ waitpit is used
 // for system calls: pipe(), exec()
 #include <unistd.h>
 
-//for close-on-exec (read man pipe2)      
+//for close-on-exec: O_CLOEXEC (read man pipe2)      
 #include <fcntl.h>              
 
 //for time
@@ -46,10 +36,10 @@ waitpit is used
 
 //for kill()
 #define SIGTERM 15
-#include <signal.h>
 
-#include <fcntl.h>
-
+//for waitpid
+#include <sys/types.h>
+#include <sys/wait.h>
 
 // main --------------------------------------------------------------------------------------------------
 
@@ -68,20 +58,8 @@ int main(){
     int noOfProcessesAllowed = 100;
     Process processes[noOfProcessesAllowed];
     
-    // char buff1[100];
-
-    // for(int i = 0; i < 100; i++) {
-    //     printf(buff1, "%s", processes[i].ind);
-    //     puts(buff1);
-    //     printf(buff1, "%s", processes[i].name);
-    //     puts(buff1);
-    //     printf(buff1, "%s", processes[i].pid);
-    //     puts(buff1);
-    //     printf(buff1, "%s", processes[i].status);
-    //     puts(buff1);
-    // }
     
-    //initializing two pipes for smoking input output -------------------------------
+    //initializing two pipes for smoking input output (client - server communication -------------------------------
     int fdClientToServer[2];
 	int fdServerToClient[2];
 	
@@ -155,27 +133,28 @@ int main(){
                 exit(1);
             }
             else if(strcmp(requirement, "list") == 0){
-            
-            if(processIndex == 0){
-                sprintf(buff1, "Please initiate a process first.");
-            }
-            else{
-            time_t curTime = time(NULL);
-            sprintf(buff1, " ");
-
-            bool flag = false;
-
-            for(int i = 0; i < processIndex; i++){
-                time_t elapsedTime = curTime - processes[i].startTime;
-                if(strcmp(processes[i].status, "active") == 0){
-                    flag = true;
-                    sprintf(buff1, "%s\nIndex: %d              Name: %s             pID: %d          Start Time: %time_t          Elapsed Time: %time_t", buff1, i, processes[i].name, processes[i].pid, processes[i].startTime, elapsedTime);
+                
+                if(processIndex == 0){
+                    sprintf(buff1, "Please initiate a process first.");
                 }
-            }
-            if(!flag){
-                sprintf(buff1, "No active process.");
-            }
-            }
+                else{
+                    time_t curTime = time(NULL);
+                    sprintf(buff1, " ");
+
+                    bool flag = false;
+
+                    for(int i = 0; i < processIndex; i++){
+                        time_t elapsedTime = curTime - processes[i].startTime;
+                        if(strcmp(processes[i].status, "active") == 0){
+                            flag = true;
+                            sprintf(buff1, "%s\nIndex: %d              Name: %s             pID: %d          Start Time: %time_t          Elapsed Time: %time_t             Status:%s", buff1, i, processes[i].name, processes[i].pid, processes[i].startTime, elapsedTime, processes[i].status);
+                        }
+                    }
+                    sprintf(buff1, "\n%s\nNote: me_t = seconds.", buff1);
+                    if(!flag){
+                        sprintf(buff1, "No active process.");
+                    }
+                }
             
         }
             else{
@@ -337,9 +316,6 @@ int main(){
 
             char name[l+1];
 
-            // sprintf(buff1, "res is %d and of string is %d", l, l2);
-            // puts(buff1);
-
             for(int i = 0; i < l; i++){
                 name[i] = argv[1][i];
             }
@@ -363,10 +339,9 @@ int main(){
                 else if(newPID == 0){ // child
                                        
                     // call exec
-                    close(fdServerChildToServer[1]);
 
                     sprintf(buff1, "%s", name);
-                    int execResult = execlp(buff1, buff1, NULL);
+                    int execResult = execlp(buff1, buff1, "-s", NULL);
 
                     write(fdServerChildToServer[1], "failure", 10);
 
@@ -375,8 +350,10 @@ int main(){
                 }
                 else{//parent - keep it running
                     
-                    // int res = read(fdServerChildToServer[0],  buff0, 10);
-                    int res = 0;
+                    close(fdServerChildToServer[1]);
+                    int res = read(fdServerChildToServer[0],  buff0, 10);
+                    // sprintf(buff1, "%d", res);
+                    // puts(buff1);
                     if(res == 0){//success
                          for(int i = 0; i < strlen(name); i++){
                             processes[processIndex].name[i] = name[i];
@@ -411,17 +388,17 @@ int main(){
             sprintf(buff1, " ");
             for(int i = 0; i < processIndex; i++){
                 time_t elapsedTime = curTime - processes[i].startTime;
-                sprintf(buff1, "%s\nIndex: %d              Name: %s             pID: %d          Start Time: %time_t          Elapsed Time: %time_t", buff1, i, processes[i].name, processes[i].pid, processes[i].startTime, elapsedTime);
+                sprintf(buff1, "%s\nIndex: %d              Name: %s             pID: %d          Start Time: %time_t          Elapsed Time: %time_t             Status:%s", buff1, i, processes[i].name, processes[i].pid, processes[i].startTime, elapsedTime, processes[i].status);
             }
+            sprintf(buff1, "\n%s\nNote: me_t = seconds.", buff1);
             }
         }
 
-        else if(strcmp(requirement, "kill") == 0){
+        else if(strcmp(requirement, "kill") == 0){// -------------------------------------------------------------- KILL -------------------------------------------------------------------------------------------
+            
             bool isID = true;
             bool isName = true;
-
-            bool success = true;
-
+            
             for(int i = 0; i < strlen(requirement2); i++){
                 if(!isdigit(requirement2[i])){
                     isID = false;
@@ -430,20 +407,30 @@ int main(){
                     isName = false;
                 }
             }
-            if(isName && isID){
+            if(!isName && !isID){
                 sprintf(buff1, "Invalid id and/or name.");
             }
             else{
+                bool success = true;
+                bool inList = false;
+                bool flag = true;
+
                 if(isName){
                     for(int i = 0; i < processIndex; i++){
                         if(strcmp(processes[i].name, requirement2) == 0){
+                            inList = true;
                             int res = kill(processes[i].pid, SIGTERM);
+                            if (waitpid(processes[i].pid, NULL, WCONTINUED) < 0) {
+                                sprintf(buff1, "Failed to collect child process");
+                                flag = false;
+                                break;
+                            }                
                             if(res == 0){//mark inactive
                                 char temp[9] = "inactive";
-                                for(int i = 0; i < strlen("inactive"); i++){
-                                    processes[processIndex].status[i] = temp[i];
+                                for(int j = 0; j < strlen("inactive"); j++){
+                                    processes[i].status[j] = temp[j];
                                 }
-                                processes[processIndex].status[strlen("inactive")] = '\0';
+                                processes[i].status[strlen("inactive")] = '\0';
                                 }
                             else{
                                 sprintf(buff1, "Error in kill");
@@ -455,13 +442,14 @@ int main(){
                 else{
                     for(int i = 0; i < processIndex; i++){
                         if(processes[i].pid == atoi(requirement2)){
+                            inList = true;
                             int res = kill(processes[i].pid, SIGTERM);
                             if(res == 0){ //mark inactive
                                 char temp[9] = "inactive";
-                                for(int i = 0; i < strlen("inactive"); i++){
-                                    processes[processIndex].status[i] = temp[i];
+                                for(int j = 0; j < strlen("inactive"); j++){
+                                    processes[i].status[j] = temp[j];
                                 }
-                                processes[processIndex].status[strlen("inactive")] = '\0';
+                                processes[i].status[strlen("inactive")] = '\0';
                                 }
                             else{
                                 sprintf(buff1, "Error in kill");
@@ -471,11 +459,16 @@ int main(){
                     }
 
                 }
-
+                if(success && inList){
+                    sprintf(buff1, "Done killing.");
+                }
+                else{
+                    if(flag){
+                    sprintf(buff1, "Invalid id and/or name.");
+                    }
+                }
             }
-            if(success){
-            sprintf(buff1, "Done killing.");
-            }
+            
         }
        
         else{
