@@ -11,7 +11,7 @@
 #include <signal.h>
 
 /* handler for SIGINT */
-static void sigint_handler (int signo){
+ static void sigint_handler (int signo){
     char buff[20];
     sprintf (buff, "Caught SIGINT!\n");
     puts(buff);
@@ -31,7 +31,10 @@ int main (void){
         buff0[i] = '\0';
     }
 
-    if (signal(SIGINT, sigint_handler) == SIG_ERR) {
+    // struct sigaction sa;
+    // sa.sa_handler = &sigint_handler;
+    //sigaction(SIGINT, &sa, NULL) == -1
+    if (signal (SIGINT, sigint_handler) == SIG_ERR) {
             char buff1[30];
             sprintf (buff1, "Cannot handle SIGINT!\n");
             puts(buff1);
@@ -46,7 +49,7 @@ int main (void){
     }
     else if(pid == 0){//server
 
-        pause ();
+        pause();
         sprintf (buff1, "Server: signal received\n");
         puts(buff1);
 
@@ -86,7 +89,8 @@ int main (void){
         }
 
         //sends signal to child
-        int sigRes = kill(pid, SIGUSR1);
+        // sigqueue(getppid(), , const union sigval value);
+        int sigRes = kill(getppid(), SIGUSR1);
         if(sigRes == -1){
             perror("In error handling");
             exit(0);
@@ -138,7 +142,7 @@ int main (void){
             exit(0);
         }
 
-        int output = read(f, buff0, 2);
+        int output = read(f, buff0, 10);
         if(output == -1){
             perror("In reading program output");
             exit(0);
