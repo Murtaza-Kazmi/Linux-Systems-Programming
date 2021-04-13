@@ -1,3 +1,6 @@
+//This program adds the first two digits entered by user and prints the result.
+
+//for open
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -5,9 +8,10 @@
 //for strlen:
 #include <string.h>
 
+//for signals
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
+#include <unistd.h> //main API header file
 #include <signal.h>
 
 /* handler for SIGINT */
@@ -37,7 +41,13 @@ int main(void){
     struct sigaction sa;
     sa.sa_handler = &sigint_handler;
     
-    
+    // if (signal(SIGINT, sigint_handler) == SIG_ERR) {
+    if (sigaction(SIGUSR1, &sa, NULL) == -1) {
+            char buff1[30];
+            sprintf (buff1, "Cannot handle SIGINT!\n");
+            puts(buff1);
+            exit(EXIT_FAILURE);
+        }
 
     int pid = fork();
     
@@ -46,17 +56,10 @@ int main(void){
         puts(buff1);
     }
     else if(pid == 0){//server
-        // if (signal(SIGINT, sigint_handler) == SIG_ERR) {
-        if (sigaction(SIGUSR1, &sa, NULL) == -1) {
-                char buff1[30];
-                sprintf (buff1, "Cannot handle SIGINT!\n");
-                puts(buff1);
-                exit(EXIT_FAILURE);
-            }
-        // sleep(5000);
+
         pause();
         
-        sprintf (buff1, "Server: signal received\n");
+        sprintf (buff1, "Server: signal received.");
         puts(buff1);
 
         //opens file
@@ -106,14 +109,6 @@ int main(void){
 
     }
     else{//client
-
-        // if (signal(SIGINT, sigint_handler) == SIG_ERR) {
-        if (sigaction(SIGUSR1, &sa, NULL) == -1) {
-                char buff1[30];
-                sprintf (buff1, "Cannot handle SIGINT!\n");
-                puts(buff1);
-                exit(EXIT_FAILURE);
-            }
 
         //takes input
         int input = read(0, buff0, 2);
@@ -166,7 +161,6 @@ int main(void){
         //prints result
         puts(buff0);
 
-        
     }
     return 0;
 }
