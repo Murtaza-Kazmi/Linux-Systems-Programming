@@ -17,7 +17,7 @@
 /* handler for SIGINT */
   static void sigint_handler (int signo){
     char buff[20];
-    sprintf (buff, "Caught SIGINT!\n");
+    sprintf (buff, "Caught SIGINT!");
     puts(buff);
     }
 const union sigval x {
@@ -98,13 +98,13 @@ int main(void){
         }
 
         //sends signal to child
-        // int sigRes = sigqueue(getppid(), SIGUSR1, x);
-        int sigRes = kill(getppid(), SIGUSR1);
+        int sigRes = sigqueue(getppid(), SIGUSR1, x);
+        // int sigRes = kill(getppid(), SIGUSR1);
         if(sigRes == -1){
             perror("In error handling");
             exit(EXIT_FAILURE);
         }
-        sprintf (buff1, "Server: signal sent\n");
+        sprintf (buff1, "Server: signal sent");
         puts(buff1);
 
     }
@@ -131,18 +131,18 @@ int main(void){
         }
 
         //sends signal to child
-        // int sigRes = sigqueue(pid, SIGUSR1, x);
-        int sigRes = kill(pid, SIGUSR1);
+        int sigRes = sigqueue(pid, SIGUSR1, x);
+        // int sigRes = kill(pid, SIGUSR1);
         if(sigRes == -1){
             perror("In error handling");
             exit(EXIT_FAILURE);
         }
-        sprintf (buff1, "Client: signal sent\n");
+        sprintf (buff1, "Client: signal sent");
         puts(buff1);
 
         //gets blocked until child sends signal
         pause();
-        sprintf (buff1, "Client: signal received\n");
+        sprintf (buff1, "Client: signal received");
         puts(buff1);
 
         //reads result from file
