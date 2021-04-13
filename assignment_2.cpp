@@ -1,7 +1,7 @@
 
 /* CLI input info -------------------------------------------------------------------------------------
 run app_name (runs that application)
-exit (exits entire app)
+exit (exits entire program)
 add 1 2 (adds all integers)
 sub 2 3 4 (subtracts first integer from the rest)
 div 2 3 4 (divides first integer from the rest)
@@ -41,24 +41,66 @@ The lists keep track of elapsed time / execution time.
 #include <sys/types.h>
 #include <sys/wait.h>
 
+//for signals
+#include <stdlib.h>
+#include <stdio.h>
+//+ main API header file
+#include <signal.h>
+
+   
+class Process {       
+        public:            
+            char name[100];
+            int pid;
+            char status[10];
+            time_t startTime;
+};
+
+int noOfProcessesAllowed = 100;
+Process processes[100];
+
+    void sigchild_handler (int signo){
+        char buff[20];
+        sprintf (buff, "Caught SIGCHILD.");
+        puts(buff);
+    
+        int terminatedProcessID = waitpid(-1, NULL, WNOHANG);
+
+        for(int i = 0; i < 100; i++){
+            if(processes[i].pid == terminatedProcessID){
+               //mark inactive
+                char temp[9] = "inactive";
+                for(int j = 0; j < strlen("inactive"); j++){
+                    processes[i].status[j] = temp[j];
+                }
+                processes[i].status[strlen("inactive")] = '\0';
+            }
+        }
+
+    }
+
 // main --------------------------------------------------------------------------------------------------
 
 
 int main(){
 
 
-    class Process {       
-        public:            
-            char name[100];
-            int pid;
-            char status[10];
-            time_t startTime;
-    };
+    
+    
+    //signal initialization --------------
+    // struct sigaction sa;
+    // sa.sa_handler = &sigchild_handler;
+    
+    if (signal(SIGCHLD, sigchild_handler) == SIG_ERR) {
+    // if (sigaction(SIGCHLD, &sa, NULL) == -1) {
+            char buff1[30];
+            sprintf (buff1, "Cannot handle SIGCHLD!\n");
+            puts(buff1);
+            exit(EXIT_FAILURE);
+        }
 
-    int noOfProcessesAllowed = 100;
-    Process processes[noOfProcessesAllowed];
     
-    
+
     //initializing two pipes for smoking input output (client - server communication -------------------------------
     int fdClientToServer[2];
 	int fdServerToClient[2];
@@ -419,8 +461,9 @@ int main(){
                     for(int i = 0; i < processIndex; i++){
                         if(strcmp(processes[i].name, requirement2) == 0){
                             inList = true;
-                            int res = kill(processes[i].pid, SIGTERM);
-                            if (waitpid(processes[i].pid, NULL, WCONTINUED) < 0) {
+                            int res = kill(processes[i].pid, SIGCHLD);
+
+                            if (waitpid(processes[i].pid, NULL, WNOHANG) < 0) {
                                 sprintf(buff1, "Failed to collect child process");
                                 flag = false;
                                 break;
@@ -443,7 +486,12 @@ int main(){
                     for(int i = 0; i < processIndex; i++){
                         if(processes[i].pid == atoi(requirement2)){
                             inList = true;
-                            int res = kill(processes[i].pid, SIGTERM);
+                            int res = kill(processes[i].pid, SIGCHLD);
+                            if (waitpid(processes[i].pid, NULL, WNOHANG) < 0) {
+                                sprintf(buff1, "Failed to collect child process");
+                                flag = false;
+                                break;
+                            }   
                             if(res == 0){ //mark inactive
                                 char temp[9] = "inactive";
                                 for(int j = 0; j < strlen("inactive"); j++){

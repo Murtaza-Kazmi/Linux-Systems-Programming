@@ -1,3 +1,4 @@
+
 //This program adds the first two digits entered by user and prints the result.
 
 //for open
@@ -14,10 +15,10 @@
 #include <unistd.h> //main API header file
 #include <signal.h>
 
-/* handler for SIGINT */
+/* handler for SIGUSR1 */
   static void sigint_handler (int signo){
     char buff[20];
-    sprintf (buff, "Caught SIGINT!");
+    sprintf (buff, "Caught SIGUSR1!");
     puts(buff);
     }
 const union sigval x {
