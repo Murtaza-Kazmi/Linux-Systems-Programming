@@ -59,25 +59,24 @@ class Process {
 int noOfProcessesAllowed = 100;
 Process processes[100];
 
-    void sigchild_handler (int signo){
-        char buff[20];
-        sprintf (buff, "Caught SIGCHILD.");
-        puts(buff);
-    
-        int terminatedProcessID = waitpid(-1, NULL, WNOHANG);
+void sigchild_handler (int signo){
+    char buff[20] = "Caught SIGCHILD.";
+    write(1, buff, strlen(buff));
 
-        for(int i = 0; i < 100; i++){
-            if(processes[i].pid == terminatedProcessID){
-               //mark inactive
-                char temp[9] = "inactive";
-                for(int j = 0; j < strlen("inactive"); j++){
-                    processes[i].status[j] = temp[j];
-                }
-                processes[i].status[strlen("inactive")] = '\0';
+    int terminatedProcessID = waitpid(-1, NULL, WNOHANG);
+
+    for(int i = 0; i < 100; i++){
+        if(processes[i].pid == terminatedProcessID){
+            //mark inactive
+            char temp[9] = "inactive";
+            for(int j = 0; j < strlen("inactive"); j++){
+                processes[i].status[j] = temp[j];
             }
+            processes[i].status[strlen("inactive")] = '\0';
         }
-
     }
+
+}
 
 // main --------------------------------------------------------------------------------------------------
 
