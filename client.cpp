@@ -1,7 +1,6 @@
-//client
- #include <unistd.h>
- #include <stdlib.h>
- #include <strings.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <strings.h>
 
 
 #include <sys/types.h>
@@ -14,7 +13,7 @@
 #include <cstring>
 
 //for sprintf
- #include <string>
+#include <string>
 
 int main(int argc, char *argv[]){
 	int sock;
