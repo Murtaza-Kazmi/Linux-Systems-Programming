@@ -416,8 +416,9 @@ void spawnProcess(int sock, bool callAccept, int pid){
 
 				if(isName){
 					for(int i = 0; i < processIndex; i++){
-						if(strcmp(processes[i].name, requirement2) == 0){
+						if((strcmp(processes[i].name, requirement2) == 0) && (strcmp(processes[i].status, "active") == 0)){
 							inList = true;
+							
 							int res = kill(processes[i].pid, SIGCHLD);
 
 							if (waitpid(processes[i].pid, NULL, WNOHANG) < 0) {
@@ -441,7 +442,8 @@ void spawnProcess(int sock, bool callAccept, int pid){
 				}
 				else{
 					for(int i = 0; i < processIndex; i++){
-						if(processes[i].pid == atoi(requirement2)){
+						if(processes[i].pid == atoi(requirement2) && (strcmp(processes[i].status, "active") == 0)){
+						
 							inList = true;
 							int res = kill(processes[i].pid, SIGCHLD);
 							if (waitpid(processes[i].pid, NULL, WNOHANG) < 0) {
@@ -500,6 +502,8 @@ void handler (int signo){
 			for(int i = 0; i < 100; i++){
 				if(processes[i].pid == terminatedProcessID){
 					//mark inactive
+					sprintf(buff, "Collected pid of application.");
+					puts(buff);
 					char temp[9] = "inactive";
 					for(int j = 0; j < strlen("inactive"); j++){
 						processes[i].status[j] = temp[j];
@@ -508,7 +512,7 @@ void handler (int signo){
 				}
 				if(clients[i].pid == terminatedProcessID){
 					clients[i].pid = -1;
-					sprintf(buff, "Collected pid.");
+					sprintf(buff, "Collected pid of client communicator.");
 					puts(buff);
 					sprintf(buff, " ");
 					for(int j = 0; j < clientsIndex; j++){
@@ -560,7 +564,7 @@ int main(void){
 	/* Name socket using wildcards */
 	server.sin_family = AF_INET;
 	server.sin_addr.s_addr = INADDR_ANY;
-	server.sin_port = htons(55001);
+	server.sin_port = htons(55000);
 	if (bind(sock, (struct sockaddr *) &server, sizeof(server))) {
 		perror("binding stream socket");
 		exit(1);
