@@ -67,14 +67,19 @@ int size = 10000;
 int sock;
 
 
-void spawnProcess(int sock, bool callAccept){
+void spawnProcess(int sock, bool callAccept, int pid){
 	int msgsock;
 	if(callAccept){
 		msgsock = accept(sock, 0, 0);
 		if (msgsock == -1){
 			perror("accept");
 		exit(EXIT_FAILURE);
-	}
+		}
+		char buff[100];
+		sprintf(buff, "Accepted new client.");
+		puts(buff);
+		clients[clientsIndex].pid = pid;
+		clientsIndex += 1;
 	}
 	else{
 		msgsock = sock;
@@ -483,47 +488,47 @@ void spawnProcess(int sock, bool callAccept){
 }
 
 
-	// For better performance, if we want to sustain the no of active processes on the server in the accept() state I spawned a new process
-	// in the signal handler whenever the client will send "exit", SIGCHLD would be generated at the server which will then spawn a new child.
-	// But SIGCHILD is also generated when an application "run" by the client like calculator is closed/closes... and because the handler would run for this as well, we would be spawning
-	// a new process for each application that is closed. To avoid this, first I created a sequence of structures "X" for storing the immediate child processes of the server 
-	// and then tried these two solutions:
-	// 1. Checked if the PID (calculated through waitpid) is in the structure X, and if it is, only then spawn a new process.
-	// 2. A different signal handler for the main server process and a different one for all the spawned processes. 
-
-
-
 void handler (int signo){
 	if(signo == SIGCHLD){
-		char buff[20] = "Caught SIGCHILD.\n";
+		char buff[100] = "Caught SIGCHILD.\n";
 		write(1, buff, strlen(buff));
+
 
 		int terminatedProcessID = waitpid(-1, NULL, WNOHANG);
 
-		for(int i = 0; i < 100; i++){
-			if(processes[i].pid == terminatedProcessID){
-				//mark inactive
-				char temp[9] = "inactive";
-				for(int j = 0; j < strlen("inactive"); j++){
-					processes[i].status[j] = temp[j];
+		while(terminatedProcessID != -1){
+			for(int i = 0; i < 100; i++){
+				if(processes[i].pid == terminatedProcessID){
+					//mark inactive
+					char temp[9] = "inactive";
+					for(int j = 0; j < strlen("inactive"); j++){
+						processes[i].status[j] = temp[j];
+					}
+					processes[i].status[strlen("inactive")] = '\0';
 				}
-				processes[i].status[strlen("inactive")] = '\0';
 			}
+			terminatedProcessID = waitpid(-1, NULL, WNOHANG);
 		}
 
 		for(int i = 0; i < 100; i++){
-        if(clients[i].pid == terminatedProcessID){
-            clients[i].pid = -1;
-			spawnProcess(sock, true);
-        }
-    }
+			if(clients[i].pid == terminatedProcessID){
+				clients[i].pid = -1;
+				sprintf(buff, "Collected pid.");
+				puts(buff);
+				sprintf(buff, " ");
+				for(int j = 0; j < clientsIndex; j++){
+					sprintf(buff, "%s\nIndex: %d              PID: %d", buff, j, clients[j].pid);
+				}
+				spawnProcess(sock, true, 0);
+			}
+    	}	
 	}
 }
 
 
 
 // main ----------------------------------------------------------------------------------------------------------------------------------------------------
-
+//call
 
 int main(void){
 	//signal initialization --------------
@@ -557,7 +562,7 @@ int main(void){
 	/* Name socket using wildcards */
 	server.sin_family = AF_INET;
 	server.sin_addr.s_addr = INADDR_ANY;
-	server.sin_port = 0;
+	server.sin_port = htons(55001);
 	if (bind(sock, (struct sockaddr *) &server, sizeof(server))) {
 		perror("binding stream socket");
 		exit(1);
@@ -586,16 +591,11 @@ int main(void){
 			forkRes = fork();
 			if(forkRes > 0){
 				forkCount++;
-				clients[clientsIndex].pid = forkRes;
-				clientsIndex += 1;
-				char buff[100];
-				sprintf(buff, "Accepted new client.");
-				puts(buff);
 				continue;
 			}
 			else if(forkRes == 0){
 					callAccept = true;
-					spawnProcess(sock, callAccept);
+					spawnProcess(sock, callAccept, forkRes);
 			}
 			else{
 				perror("fork()");
@@ -604,17 +604,20 @@ int main(void){
 		else{
 			
 			msgsock = accept(sock, 0, 0);
+			char buff[100];
+			sprintf(buff, "Accepted new client.");
+			puts(buff);
+			clients[clientsIndex].pid = forkRes;
+			clientsIndex += 1;
 
 			forkRes = fork();
 
 			if(forkRes > 0){
-				clients[clientsIndex].pid = forkRes;
-				clientsIndex += 1;
 				continue;
 			}
 			else if(forkRes == 0){
 				callAccept = false;
-				spawnProcess(msgsock, callAccept);
+				spawnProcess(msgsock, callAccept, forkRes);
 			}
 			else{
 				perror("fork()");				

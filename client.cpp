@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <strings.h>
 
-
+//for socket
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
