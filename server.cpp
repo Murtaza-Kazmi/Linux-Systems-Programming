@@ -506,22 +506,20 @@ void handler (int signo){
 					}
 					processes[i].status[strlen("inactive")] = '\0';
 				}
+				if(clients[i].pid == terminatedProcessID){
+					clients[i].pid = -1;
+					sprintf(buff, "Collected pid.");
+					puts(buff);
+					sprintf(buff, " ");
+					for(int j = 0; j < clientsIndex; j++){
+						sprintf(buff, "%s\nIndex: %d              PID: %d", buff, j, clients[j].pid);
+					}
+					spawnProcess(sock, true, 0);
+				}
 			}
 			terminatedProcessID = waitpid(-1, NULL, WNOHANG);
 		}
 
-		for(int i = 0; i < 100; i++){
-			if(clients[i].pid == terminatedProcessID){
-				clients[i].pid = -1;
-				sprintf(buff, "Collected pid.");
-				puts(buff);
-				sprintf(buff, " ");
-				for(int j = 0; j < clientsIndex; j++){
-					sprintf(buff, "%s\nIndex: %d              PID: %d", buff, j, clients[j].pid);
-				}
-				spawnProcess(sock, true, 0);
-			}
-    	}	
 	}
 }
 
@@ -536,7 +534,7 @@ int main(void){
 
 	struct sigaction sa;
     sa.sa_handler = handler; 
-	sa.sa_flags = SA_NODEFER;
+	sa.sa_flags = SA_NODEFER | SA_RESTART;
 
 	if (sigaction(SIGCHLD, &sa, 0) == -1) {
             char buff1[30];
