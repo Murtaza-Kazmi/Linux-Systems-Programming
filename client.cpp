@@ -15,7 +15,34 @@
 //for sprintf
 #include <string>
 
+//for signals
+#include <stdlib.h>
+#include <stdio.h>
+//+ main API header file
+#include <signal.h>
+
+void handler (int signo){
+	if(signo == SIGCHLD){
+		char buff[1000] = "Caught SIGPIPE. So connection with server is lost.\n";
+		write(1, buff, strlen(buff));
+		exit(1);
+	}
+}
+
 int main(int argc, char *argv[]){
+
+
+	struct sigaction sa;
+    sa.sa_handler = handler;
+
+	if (sigaction(SIGPIPE, &sa, 0) == -1) {
+		char buff1[30];
+		sprintf (buff1, "Cannot handle SIGPIPE!\n");
+		puts(buff1);
+		exit(EXIT_FAILURE);
+	}
+
+
 	int sock;
 	struct sockaddr_in server;
 	struct hostent *hp;
@@ -54,11 +81,11 @@ int main(int argc, char *argv[]){
 		char buff1[size];
 
 		for(int i = 0; i < size; i++){
-			buff0[i] = '\n';
-			buff1[i] = '\n';
+			buff0[i] = '\0';
+			buff1[i] = '\0';
 		}
 
-		//reads until enter, so no garbage value
+		//reads until enter, so no garbage value, truncates until character
 		int noOfBytesRead = read(0, buff0, size-1);
 		
 		if(buff0[0] == '\n'){
@@ -77,23 +104,25 @@ int main(int argc, char *argv[]){
 			perror("Error in writing from server to client.");
 		}
 
-		int readResponseResult = read(sock, buff0, sizeof(buff0)-1);
+		int readResponseResult;
+		// do{
+			// readResponseResult = read(sock, buff0, sizeof(buff0)-1);
+		// 	if(readResponseResult < 0){
+		// 		perror("Client: error in reading response sent by server.");
+		// 	}
+		// }
+		// while(strlen(buff0) == 0);
 
-		if(readResponseResult < 0){
-			perror("Client: error in reading response sent by server.");
-		}
+		readResponseResult = read(sock, buff0, sizeof(buff0)-1);
 
-		sprintf(buff1, "%s", buff0);
-		// sprintf(buff1, "1 ");
-		if(strcmp(buff1, "Exit!") == 0){
-			sprintf(buff1, "Terminated.");
+		if(readResponseResult == 0){
+			sprintf(buff1, "Connection broke.");
 			puts(buff1);
 			exit(1);
 		}
-		else{
-		puts(buff1);
-		}
-		
+
+
+		puts(buff0);
 		//while ends
 	}
 	close(sock);

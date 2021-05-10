@@ -65,12 +65,17 @@ int processIndex = 0;
 int clientsIndex = 0;
 int size = 10000;
 int sock;
+int indexOfAcceptedClients = -1;
+
+//check 
+int msgsock;
 
 
 void spawnProcess(int sock, bool callAccept, int pid){
 	int msgsock;
 	if(callAccept){
 		msgsock = accept(sock, 0, 0);
+		indexOfAcceptedClients++;
 		if (msgsock == -1){
 			perror("accept");
 		exit(EXIT_FAILURE);
@@ -100,13 +105,19 @@ void spawnProcess(int sock, bool callAccept, int pid){
 		//there could be garbage values in buff0
 		for(int i = 0; i < size; i++){
 			buff0[i] = '\0';
+			buff1[i] = '\0';
 		}
 
 		int readResult = read(msgsock,  buff0, sizeof(buff0)-1);
 
+		sprintf(buff1, "Received this from client: %s", buff0);
+		puts(buff1);
+
 		if(readResult < 0){
-			sprintf(buff1, "Server: error in reading pipe client to server.");
-			responseAttempt = write(msgsock, buff1, sizeof(buff1)-1);
+			sprintf(buff1, "Server: error in reading from msgsock of client.");
+			responseAttempt = write(msgsock, buff1, strlen(buff1)-1);
+			sprintf(buff0, "Wrote this to client: %s", buff1);
+			puts(buff0);
 			continue;
 		}
 
@@ -126,12 +137,7 @@ void spawnProcess(int sock, bool callAccept, int pid){
 		char* requirement = argv[0];
 
 		if(argc == 1){
-			if(strcmp(requirement, "exit") == 0){
-				sprintf(buff1, "Exit!");
-				responseAttempt = write(msgsock, buff1, sizeof(buff1)-1);
-				exit(1);
-			}
-			else if(strcmp(requirement, "list") == 0){
+			if(strcmp(requirement, "list") == 0){
 				
 				if(processIndex == 0){
 					sprintf(buff1, "Please initiate a process first.");
@@ -160,7 +166,9 @@ void spawnProcess(int sock, bool callAccept, int pid){
 				sprintf(buff1, "Invalid requirements. Please re-enter.");
 			}
 
-			responseAttempt = write(msgsock, buff1, sizeof(buff1)-1);
+			responseAttempt = write(msgsock, buff1, strlen(buff1)-1);
+			sprintf(buff0, "Wrote this to client: %s", buff1);
+			puts(buff0);
 			continue;
 		}
 		
@@ -482,7 +490,9 @@ void spawnProcess(int sock, bool callAccept, int pid){
 			sprintf(buff1, "Invalid requirement. Please re-enter.");
 		}
 
-		responseAttempt = write(msgsock, buff1, sizeof(buff1)-1);
+		responseAttempt = write(msgsock, buff1, strlen(buff1)-1);
+		sprintf(buff0, "Wrote this to client: %s", buff1);
+		puts(buff0);
 		
 	} while (true);
 	close(msgsock);
@@ -492,41 +502,66 @@ void spawnProcess(int sock, bool callAccept, int pid){
 
 void handler (int signo){
 	if(signo == SIGCHLD){
-		char buff[100] = "Caught SIGCHILD.\n";
+		char buff[1000] = "Caught SIGCHILD.\n";
 		write(1, buff, strlen(buff));
-
 
 		int terminatedProcessID = waitpid(-1, NULL, WNOHANG);
 
-		while(terminatedProcessID != -1){
-			for(int i = 0; i < 100; i++){
-				if(processes[i].pid == terminatedProcessID){
-					//mark inactive
-					sprintf(buff, "Collected pid of application.");
-					puts(buff);
-					char temp[9] = "inactive";
-					for(int j = 0; j < strlen("inactive"); j++){
-						processes[i].status[j] = temp[j];
-					}
-					processes[i].status[strlen("inactive")] = '\0';
+		for(int i = 0; i < 100; i++){
+			if(processes[i].pid == terminatedProcessID){
+				//mark inactive
+				sprintf(buff, "Collected pid of application.");
+				puts(buff);
+				char temp[9] = "inactive";
+				for(int j = 0; j < strlen("inactive"); j++){
+					processes[i].status[j] = temp[j];
 				}
-				if(clients[i].pid == terminatedProcessID){
-					clients[i].pid = -1;
-					sprintf(buff, "Collected pid of client communicator.");
-					puts(buff);
-					sprintf(buff, " ");
-					for(int j = 0; j < clientsIndex; j++){
-						sprintf(buff, "%s\nIndex: %d              PID: %d", buff, j, clients[j].pid);
-					}
-					spawnProcess(sock, true, 0);
-				}
+				processes[i].status[strlen("inactive")] = '\0';
 			}
-			terminatedProcessID = waitpid(-1, NULL, WNOHANG);
+			if(clients[i].pid == terminatedProcessID){
+				//unable to reach here since list not updated, so EITHER update the list through updateActivated() OR loop until -1
+				//with pid = 0 since not immediate child!
+				clients[i].pid = -1;
+				sprintf(buff, "Collected pid of client handler.");
+				puts(buff);
+				sprintf(buff, " ");
+				for(int j = 0; j < clientsIndex; j++){
+					sprintf(buff, "%s\nIndex: %d PID: %d", buff, j, clients[j].pid);
+				}
+				puts(buff);
+				spawnProcess(sock, true, 0);
+			}
 		}
 
 	}
+	//check
+	else if(signo == SIGINT){
+		char buff[1000] = "Caught SIGINT. Closing sock and msgsock.\n";
+		write(1, buff, strlen(buff));
+		close(msgsock);
+		close(sock);
+		exit(1);
+	}
 }
 
+void displayClientCommunicators(){
+	char buff[1000];
+	sprintf(buff, " ");
+	for(int j = 0; j < indexOfAcceptedClients; j++){
+		sprintf(buff, "%s\nIndex: %d PID: %d", buff, j, clients[j].pid);
+	}
+	puts(buff);
+	char duff[10];
+	sprintf(duff, "--------");
+	puts(duff);
+}
+
+void updateActivated(){
+	//communicates with clientCommunicators and if any of them is activated, the main server process is updated with the list
+	//if not used, only the children accepted in the main server process would be updated.
+
+	//right only sigchild of unupdates clients is generated, not caught by parent
+}
 
 
 // main ----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -546,11 +581,20 @@ int main(void){
             puts(buff1);
             exit(EXIT_FAILURE);
         }
-
+		//check
+	struct sigaction sa2;
+    sa2.sa_handler = handler; 
+	sa2.sa_flags = SA_NODEFER;
+	if (sigaction(SIGINT, &sa2, 0) == -1) {
+            char buff1[30];
+            sprintf (buff1, "Cannot handle SIGINT!\n");
+            puts(buff1);
+            exit(EXIT_FAILURE);
+        }
+ 
 
 	int length;
 	struct sockaddr_in server;
-	int msgsock;
 	char buf[1024];
 	int rval;
 	int i;
@@ -581,17 +625,20 @@ int main(void){
 	/* Start accepting connections */
 	listen(sock, 5);
 
-	int maxNoOfForks = 2;
+	int maxNoOfForks = 4;
 	int forkCount = 0;
 	int forkRes;
 	bool callAccept;
 
 	while(true){
-
+		
 		if(forkCount < maxNoOfForks){
 
 			forkRes = fork();
+			// forkRes = fork();
 			if(forkRes > 0){
+				clients[clientsIndex].pid = forkRes;
+				clientsIndex++;
 				forkCount++;
 				continue;
 			}
@@ -606,14 +653,13 @@ int main(void){
 		else{
 			
 			msgsock = accept(sock, 0, 0);
+			indexOfAcceptedClients++;
 			char buff[100];
 			sprintf(buff, "Accepted new client.");
 			puts(buff);
 			clients[clientsIndex].pid = forkRes;
 			clientsIndex += 1;
-
-			forkRes = fork();
-
+			
 			if(forkRes > 0){
 				continue;
 			}
@@ -625,5 +671,8 @@ int main(void){
 				perror("fork()");				
 			}
 		}
+		displayClientCommunicators();
 	}
+	close(sock);
 }
+
