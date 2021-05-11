@@ -21,13 +21,15 @@
 //+ main API header file
 #include <signal.h>
 
-void handler (int signo){
-	if(signo == SIGCHLD){
-		char buff[1000] = "Caught SIGPIPE. So connection with server is lost.\n";
-		write(1, buff, strlen(buff));
-		exit(1);
-	}
-}
+//therad
+#include <pthread.h>
+
+void *read_function( void *ptr );
+void *write_function( void *ptr );
+void handler (int signo);
+
+int size = 10000;
+
 
 int main(int argc, char *argv[]){
 
@@ -71,14 +73,71 @@ int main(int argc, char *argv[]){
 	}
 
 	int size = 10000;
+	
+	pthread_t thread1, thread2;
+    const int *s = &sock;
+    int  iret1, iret2;
 
+    iret1 = pthread_create( &thread1, NULL, read_function, (void*) s);
+
+    if(iret1){
+        fprintf(stderr,"Error - pthread_create() return code: %d\n",iret1);
+        exit(EXIT_FAILURE);
+    }
+
+    iret2 = pthread_create( &thread2, NULL, write_function, (void*) s);
+
+    if(iret2){
+        fprintf(stderr,"Error - pthread_create() return code: %d\n",iret2);
+        exit(EXIT_FAILURE);
+    }
+
+    printf("pthread_create() for thread 1 returns: %d\n",iret1);
+    printf("pthread_create() for thread 2 returns: %d\n",iret2);
+
+    /* Wait till threads are complete before main continues. Unless we  */
+    /* wait we run the risk of executing an exit which will terminate   */
+    /* the process and all threads before the threads have completed.   */
+
+    pthread_join(thread1, NULL);
+    pthread_join(thread2, NULL);
+	close(sock);
+	exit(0);
+}
+
+
+void *read_function( void *s ){
+	//buffer used for read 	
+	char buff0[10000];
+
+	int *sockp = (int *) s;
+	int sock = *sockp;
+
+	//buffer used for sprintf 	
+	char buff1[10000];
+	while(true){
+		int readResponseResult = read(sock, buff0, sizeof(buff0)-1);
+
+		if(readResponseResult == 0){
+			sprintf(buff1, "Connection broke.");
+			puts(buff1);
+			exit(0);
+		}
+		
+		puts(buff0);
+	}
+}
+
+void *write_function(void *s){
+	int *sockp = (int *) s;
+	int sock = *sockp;
 	while(true){
 
 		//buffer used for read 	
-		char buff0[size];
+		char buff0[10000];
 
 		//buffer used for sprintf 	
-		char buff1[size];
+		char buff1[10000];
 
 		for(int i = 0; i < size; i++){
 			buff0[i] = '\0';
@@ -103,27 +162,13 @@ int main(int argc, char *argv[]){
 		if(writeResult < 0){
 			perror("Error in writing from server to client.");
 		}
-
-		int readResponseResult;
-		// do{
-			// readResponseResult = read(sock, buff0, sizeof(buff0)-1);
-		// 	if(readResponseResult < 0){
-		// 		perror("Client: error in reading response sent by server.");
-		// 	}
-		// }
-		// while(strlen(buff0) == 0);
-
-		readResponseResult = read(sock, buff0, sizeof(buff0)-1);
-
-		if(readResponseResult == 0){
-			sprintf(buff1, "Connection broke.");
-			puts(buff1);
-			exit(1);
-		}
-
-
-		puts(buff0);
-		//while ends
 	}
-	close(sock);
+}
+
+void handler (int signo){
+	if(signo == SIGCHLD){
+		char buff[1000] = "Caught SIGPIPE. So connection with server is lost.\n";
+		write(1, buff, strlen(buff));
+		exit(0);
+	}
 }
