@@ -108,11 +108,12 @@ void *read_function( void *s ){
 
 	char buff[10000];
 
-	for(int i = 0; i < size; i++){
-		buff[i] = '\0';
-	}
+	
 
 	while(true){
+		for(int i = 0; i < 10000; i++){
+			buff[i] = '\0';
+		}
 		int readResponseResult = read(sock, buff, sizeof(buff)-1);
 
 		if(readResponseResult == 0){
@@ -121,7 +122,6 @@ void *read_function( void *s ){
 			close(sock);
 			exit(0);
 		}
-		
 		puts(buff);
 	}
 }

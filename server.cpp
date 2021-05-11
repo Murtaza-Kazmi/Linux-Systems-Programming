@@ -118,7 +118,7 @@ void spawnProcess(int sock, bool callAccept, int pid){
 			continue;
 		}
 		if(readResult == 0){
-			sprintf(buff1, "Shutting Down Client Handler.");
+			sprintf(buff1, "\nClient Handler: I am terminating.");
 			puts(buff1);
 			exit(1);
 		}
@@ -431,14 +431,10 @@ void spawnProcess(int sock, bool callAccept, int pid){
 					for(int i = 0; i < processIndex; i++){
 						if((strcmp(processes[i].name, requirement2) == 0) && (strcmp(processes[i].status, "active") == 0)){
 							inList = true;
-							
-							int res = kill(processes[i].pid, SIGCHLD);
+							int res = kill(processes[i].pid, SIGKILL);
+							sprintf(buff1, "Ran kill on %d. Kill res = %d", processes[i].pid, res);
+							puts(buff1);
 
-							if (waitpid(processes[i].pid, NULL, WNOHANG) < 0) {
-								sprintf(buff1, "Failed to collect child process");
-								flag = false;
-								break;
-							}                
 							if(res == 0){//mark inactive
 								char temp[9] = "inactive";
 								for(int j = 0; j < strlen("inactive"); j++){
@@ -448,6 +444,7 @@ void spawnProcess(int sock, bool callAccept, int pid){
 								}
 							else{
 								sprintf(buff1, "Error in kill");
+								puts(buff1);
 								success = false;
 							}
 						}
@@ -458,12 +455,10 @@ void spawnProcess(int sock, bool callAccept, int pid){
 						if(processes[i].pid == atoi(requirement2) && (strcmp(processes[i].status, "active") == 0)){
 						
 							inList = true;
-							int res = kill(processes[i].pid, SIGCHLD);
-							if (waitpid(processes[i].pid, NULL, WNOHANG) < 0) {
-								sprintf(buff1, "Failed to collect child process");
-								flag = false;
-								break;
-							}   
+							int res = kill(processes[i].pid, SIGKILL);
+							sprintf(buff1, "Ran kill on %d. Kill res = %d", processes[i].pid, res);
+							puts(buff1);
+							
 							if(res == 0){ //mark inactive
 								char temp[9] = "inactive";
 								for(int j = 0; j < strlen("inactive"); j++){
@@ -507,15 +502,18 @@ void spawnProcess(int sock, bool callAccept, int pid){
 
 void handler (int signo){
 	if(signo == SIGCHLD){
-		char buff[1000] = "Caught SIGCHILD.\n";
-		write(1, buff, strlen(buff));
+
+		int id = getpid();
+		char buff[1000] = "\nCaught SIGCHILD.\n";
+		sprintf(buff, "%s In process with pID: %d", buff, id);
+		puts(buff);
 
 		int terminatedProcessID = waitpid(-1, NULL, WNOHANG);
 
 		for(int i = 0; i < 100; i++){
 			if(processes[i].pid == terminatedProcessID){
 				//mark inactive
-				sprintf(buff, "Collected pid of application.");
+				sprintf(buff, "\nCollected pid of application %s with PID = %d", processes[i].name, processes[i].pid);
 				puts(buff);
 				char temp[9] = "inactive";
 				for(int j = 0; j < strlen("inactive"); j++){
@@ -526,14 +524,17 @@ void handler (int signo){
 			if(clients[i].pid == terminatedProcessID){
 				//unable to reach here since list not updated, so EITHER update the list through updateActivated() OR loop until -1
 				//with pid = 0 since not immediate child!
-				clients[i].pid = -1;
-				sprintf(buff, "Collected pid of client handler.");
+				sprintf(buff, "Collected pid of client handler. Index = %d. PID = %d\n Updated client handlers list is as follows:", i, clients[i].pid);
 				puts(buff);
-				sprintf(buff, " ");
+
+
+				sprintf(buff, "\0");
+				clients[i].pid = -1;
 				for(int j = 0; j < clientsIndex; j++){
 					sprintf(buff, "%s\nIndex: %d PID: %d", buff, j, clients[j].pid);
 				}
 				puts(buff);
+				
 				bool callAccept = true;
 				sprintf(buff, "Spawning in handler.");
 				puts(buff);
@@ -629,10 +630,16 @@ int main(void){
 	/* Name socket using wildcards */
 	server.sin_family = AF_INET;
 	server.sin_addr.s_addr = INADDR_ANY;
-	server.sin_port = htons(55000);
+	server.sin_port = htons(55001);
 	if (bind(sock, (struct sockaddr *) &server, sizeof(server))) {
 		perror("binding stream socket");
-		exit(1);
+		server.sin_port = htons(55001);
+		if (bind(sock, (struct sockaddr *) &server, sizeof(server))) {
+			server.sin_port = htons(55002);
+			if (bind(sock, (struct sockaddr *) &server, sizeof(server))){
+				exit(0);
+			}
+		}
 	}
 	/* Find out assigned port number and print it out */
 	length = sizeof(server);
@@ -674,13 +681,7 @@ int main(void){
 		else{
 			char buff[100];
 
-			sprintf(buff, "On accept");
-			puts(buff);
-
 			msgsock = accept(sock, 0, 0);
-
-			sprintf(buff, "Yahan");
-			puts(buff);
 
 			forkRes = fork();
 
@@ -698,11 +699,10 @@ int main(void){
 				spawnProcess(msgsock, callAccept, forkRes);
 			}
 			else{
-				perror("fork()");				
+				perror("fork() in main()");				
 			}
 		}
 		displayClientCommunicators();
 	}
 	close(sock);
 }
-
