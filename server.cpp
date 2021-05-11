@@ -458,7 +458,7 @@ void spawnProcess(int sock, bool callAccept, int pid){
 							int res = kill(processes[i].pid, SIGKILL);
 							sprintf(buff1, "Ran kill on %d. Kill res = %d", processes[i].pid, res);
 							puts(buff1);
-							
+
 							if(res == 0){ //mark inactive
 								char temp[9] = "inactive";
 								for(int j = 0; j < strlen("inactive"); j++){
@@ -556,7 +556,9 @@ void handler (int signo){
 	}
 	//check
 	else if(signo == SIGINT){
-		char buff[1000] = "Caught SIGINT. Closing sock and msgsock.\n";
+		int id = getpid();
+		char buff[1000] = "Caught SIGINT. Closing sock and msgsock";
+		sprintf(buff, "%s in %d.\n", buff, id);
 		write(1, buff, strlen(buff));
 		close(msgsock);
 		close(sock);
@@ -567,13 +569,44 @@ void handler (int signo){
 void displayClientCommunicators(){
 	char buff[1000];
 	sprintf(buff, " ");
-	for(int j = 0; j < indexOfAcceptedClients; j++){
+	for(int j = 0; j < clientsIndex; j++){
 		sprintf(buff, "%s\nIndex: %d PID: %d", buff, j, clients[j].pid);
 	}
 	puts(buff);
 	char duff[10];
 	sprintf(duff, "--------");
 	puts(duff);
+}
+
+void *server_client_handler(void *arg){
+	char buff[100];
+	while (true)
+	{
+		for(int i = 0; i < 100; i++){
+			buff[i] = '\0';
+		}
+
+		int readRes = read(0, buff, sizeof(buff));
+		
+		if(strcmp(buff, "conn list\n") == 0){
+			sprintf(buff, " ");
+			// for(int j = 0; j < clientsIndex; j++){
+			// 	sprintf(buff, "%s\nIndex: %d PID: %d", buff, j, clients[j].pid);
+			// }
+			// puts(buff);
+			displayClientCommunicators();
+		}
+		else if(strcmp(buff, "list\n") == 0){
+			exit(0);
+		}
+		else if(strcmp(buff, "exit\n") == 0){
+			exit(0);
+		}
+		else{
+			sprintf(buff, "Invalid requirement.");
+			puts(buff);
+		}
+	}
 }
 
 void updateActivated(){
@@ -657,6 +690,17 @@ int main(void){
 	int forkCount = 0;
 	int forkRes;
 	bool callAccept;
+
+	pthread_t thread1;
+    const int *s = &sock;
+    int  iret1;
+
+    iret1 = pthread_create( &thread1, NULL, server_client_handler, (void*) sock);
+
+    if(iret1){
+        fprintf(stderr,"Error - pthread_create() return code: %d\n",iret1);
+        exit(EXIT_FAILURE);
+    }
 
 	while(true){
 		
