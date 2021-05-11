@@ -68,7 +68,7 @@ int sock;
 int indexOfAcceptedClients = -1;
 
 //check 
-int msgsock;
+int msgsock;//used in handler
 
 
 void spawnProcess(int sock, bool callAccept, int pid){
@@ -110,9 +110,6 @@ void spawnProcess(int sock, bool callAccept, int pid){
 
 		int readResult = read(msgsock,  buff0, sizeof(buff0)-1);
 
-		sprintf(buff1, "Received this from client: %s", buff0);
-		puts(buff1);
-
 		if(readResult < 0){
 			sprintf(buff1, "Server: error in reading from msgsock of client.");
 			responseAttempt = write(msgsock, buff1, strlen(buff1)-1);
@@ -120,6 +117,14 @@ void spawnProcess(int sock, bool callAccept, int pid){
 			puts(buff0);
 			continue;
 		}
+		if(readResult == 0){
+			sprintf(buff1, "Shutting Down Client Handler.");
+			puts(buff1);
+			exit(1);
+		}
+
+		sprintf(buff1, "Received this from client: %s", buff0);
+		puts(buff1);
 
 		//adds input delimited by single space to argv array
 		char* token = strtok(buff0, " ");
@@ -529,7 +534,21 @@ void handler (int signo){
 					sprintf(buff, "%s\nIndex: %d PID: %d", buff, j, clients[j].pid);
 				}
 				puts(buff);
-				spawnProcess(sock, true, 0);
+				bool callAccept = true;
+				sprintf(buff, "Spawning in handler.");
+				puts(buff);
+				int forkRes = fork();
+				if(forkRes == 0){
+					spawnProcess(sock, callAccept, 0);
+				}
+				else if(forkRes < 0){
+					perror("fork() in handler.");
+				}
+				else{
+					indexOfAcceptedClients++;
+					clients[clientsIndex].pid = forkRes;
+					clientsIndex += 1;
+				}
 			}
 		}
 
@@ -573,6 +592,8 @@ int main(void){
 
 	struct sigaction sa;
     sa.sa_handler = handler; 
+	// SA_NODEFER to catch the same signal as the one currently handling
+	// SA_NORESART to restart interrupted API calls
 	sa.sa_flags = SA_NODEFER | SA_RESTART;
 
 	if (sigaction(SIGCHLD, &sa, 0) == -1) {
@@ -623,7 +644,7 @@ int main(void){
 	fflush(stdout);
 
 	/* Start accepting connections */
-	listen(sock, 5);
+	listen(sock, 10);
 
 	int maxNoOfForks = 4;
 	int forkCount = 0;
@@ -651,12 +672,19 @@ int main(void){
 			}
 		}
 		else{
-			
-			msgsock = accept(sock, 0, 0);
-			indexOfAcceptedClients++;
 			char buff[100];
-			sprintf(buff, "Accepted new client.");
+
+			sprintf(buff, "On accept");
 			puts(buff);
+
+			msgsock = accept(sock, 0, 0);
+
+			sprintf(buff, "Yahan");
+			puts(buff);
+
+			forkRes = fork();
+
+			indexOfAcceptedClients++;
 			clients[clientsIndex].pid = forkRes;
 			clientsIndex += 1;
 			
@@ -665,6 +693,8 @@ int main(void){
 			}
 			else if(forkRes == 0){
 				callAccept = false;
+				sprintf(buff, "Accepted new client before fork().");
+				puts(buff);
 				spawnProcess(msgsock, callAccept, forkRes);
 			}
 			else{

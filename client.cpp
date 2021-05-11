@@ -67,7 +67,7 @@ int main(int argc, char *argv[]){
 	bcopy(hp->h_addr, &server.sin_addr, hp->h_length);
 	server.sin_port = htons(atoi(argv[2]));
 
-	if (connect(sock,(struct sockaddr *) &server,sizeof(server)) < 0) {
+	if(connect(sock,(struct sockaddr *) &server,sizeof(server)) < 0) {
 		perror("connecting stream socket");
 		exit(1);
 	}
@@ -92,39 +92,37 @@ int main(int argc, char *argv[]){
         exit(EXIT_FAILURE);
     }
 
-    printf("pthread_create() for thread 1 returns: %d\n",iret1);
-    printf("pthread_create() for thread 2 returns: %d\n",iret2);
-
     /* Wait till threads are complete before main continues. Unless we  */
     /* wait we run the risk of executing an exit which will terminate   */
     /* the process and all threads before the threads have completed.   */
 
     pthread_join(thread1, NULL);
     pthread_join(thread2, NULL);
-	close(sock);
-	exit(0);
 }
 
 
 void *read_function( void *s ){
-	//buffer used for read 	
-	char buff0[10000];
 
 	int *sockp = (int *) s;
 	int sock = *sockp;
 
-	//buffer used for sprintf 	
-	char buff1[10000];
+	char buff[10000];
+
+	for(int i = 0; i < size; i++){
+		buff[i] = '\0';
+	}
+
 	while(true){
-		int readResponseResult = read(sock, buff0, sizeof(buff0)-1);
+		int readResponseResult = read(sock, buff, sizeof(buff)-1);
 
 		if(readResponseResult == 0){
-			sprintf(buff1, "Connection broke.");
-			puts(buff1);
+			sprintf(buff, "Connection broke.");
+			puts(buff);
+			close(sock);
 			exit(0);
 		}
 		
-		puts(buff0);
+		puts(buff);
 	}
 }
 
@@ -133,23 +131,18 @@ void *write_function(void *s){
 	int sock = *sockp;
 	while(true){
 
-		//buffer used for read 	
-		char buff0[10000];
-
-		//buffer used for sprintf 	
-		char buff1[10000];
+		char buff[10000];
 
 		for(int i = 0; i < size; i++){
-			buff0[i] = '\0';
-			buff1[i] = '\0';
+			buff[i] = '\0';
 		}
 
 		//reads until enter, so no garbage value, truncates until character
-		int noOfBytesRead = read(0, buff0, size-1);
+		int noOfBytesRead = read(0, buff, size-1);
 		
-		if(buff0[0] == '\n'){
-			sprintf(buff1, "Invalid number of arguments. Please enter again.");
-			puts(buff1);
+		if(buff[0] == '\n'){
+			sprintf(buff, "Invalid number of arguments. Please enter again.");
+			puts(buff);
 			continue;
 		}
 
@@ -158,7 +151,7 @@ void *write_function(void *s){
 		}
 		
 		// send input to server (sends the bytes inputted)
-		int writeResult = write(sock, buff0, noOfBytesRead-1);
+		int writeResult = write(sock, buff, noOfBytesRead-1);
 		if(writeResult < 0){
 			perror("Error in writing from server to client.");
 		}
