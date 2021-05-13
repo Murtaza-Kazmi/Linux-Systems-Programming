@@ -42,6 +42,8 @@
 #include <stdio.h>
 #define TRUE 1
 
+#include<arpa/inet.h> // for inet_aton(), inet_addr() and inet_ntoa()
+
   
 
 
@@ -56,6 +58,8 @@ class Process {
 class Client {       
         public:           
             int pid;
+			//check char*
+			char* ip;
 };
 
 int noOfProcessesAllowed = 100;
@@ -71,10 +75,13 @@ int indexOfAcceptedClients = -1;
 int msgsock;//used in handler
 
 
+struct sockaddr_in server;
+int length;
+
 void spawnProcess(int sock, bool callAccept, int pid){
 	int msgsock;
 	if(callAccept){
-		msgsock = accept(sock, 0, 0);
+		msgsock = accept(sock, (struct sockaddr *)&server,  (socklen_t*) &length);
 		indexOfAcceptedClients++;
 		if (msgsock == -1){
 			perror("accept");
@@ -84,6 +91,7 @@ void spawnProcess(int sock, bool callAccept, int pid){
 		sprintf(buff, "Accepted new client.");
 		puts(buff);
 		clients[clientsIndex].pid = pid;
+		clients[clientsIndex].ip = inet_ntoa(server.sin_addr);
 		clientsIndex += 1;
 	}
 	else{
@@ -111,11 +119,11 @@ void spawnProcess(int sock, bool callAccept, int pid){
 		int readResult = read(msgsock,  buff0, sizeof(buff0)-1);
 
 		if(readResult < 0){
-			sprintf(buff1, "Server: error in reading from msgsock of client.");
+			sprintf(buff1, "Server: error in reading from msgsock of client, exiting Client Handler.");
 			responseAttempt = write(msgsock, buff1, strlen(buff1)-1);
 			sprintf(buff0, "Wrote this to client: %s", buff1);
 			puts(buff0);
-			continue;
+			exit(1);
 		}
 		if(readResult == 0){
 			sprintf(buff1, "\nClient Handler: I am terminating.");
@@ -570,7 +578,7 @@ void displayClientCommunicators(){
 	char buff[1000];
 	sprintf(buff, " ");
 	for(int j = 0; j < clientsIndex; j++){
-		sprintf(buff, "%s\nIndex: %d PID: %d", buff, j, clients[j].pid);
+		sprintf(buff, "%s\nIndex: %d PID: %d IP: %s", buff, j, clients[j].pid, clients[j].ip);
 	}
 	puts(buff);
 	char duff[10];
@@ -587,19 +595,22 @@ void *server_client_handler(void *arg){
 		}
 
 		int readRes = read(0, buff, sizeof(buff));
-		
+
 		if(strcmp(buff, "conn list\n") == 0){
-			sprintf(buff, " ");
-			// for(int j = 0; j < clientsIndex; j++){
-			// 	sprintf(buff, "%s\nIndex: %d PID: %d", buff, j, clients[j].pid);
-			// }
-			// puts(buff);
 			displayClientCommunicators();
 		}
 		else if(strcmp(buff, "list\n") == 0){
 			exit(0);
 		}
 		else if(strcmp(buff, "exit\n") == 0){
+			//check
+			for(int i = 0; i < clientsIndex; i++){
+				sprintf(buff, "Killing client handler with pid %d", clients[i].pid);
+				puts(buff);
+				kill(clients[clientsIndex].pid, SIGKILL);
+				sprintf(buff, "Killig client handler with pid %d", clients[i].pid);
+				puts(buff);
+			}
 			exit(0);
 		}
 		else{
@@ -636,7 +647,7 @@ int main(void){
             puts(buff1);
             exit(EXIT_FAILURE);
         }
-		//check
+	//check
 	struct sigaction sa2;
     sa2.sa_handler = handler; 
 	sa2.sa_flags = SA_NODEFER;
@@ -647,9 +658,6 @@ int main(void){
             exit(EXIT_FAILURE);
         }
  
-
-	int length;
-	struct sockaddr_in server;
 	char buf[1024];
 	int rval;
 	int i;
@@ -666,7 +674,7 @@ int main(void){
 	server.sin_port = htons(55001);
 	if (bind(sock, (struct sockaddr *) &server, sizeof(server))) {
 		perror("binding stream socket");
-		server.sin_port = htons(55001);
+		server.sin_port = htons(55000);
 		if (bind(sock, (struct sockaddr *) &server, sizeof(server))) {
 			server.sin_port = htons(55002);
 			if (bind(sock, (struct sockaddr *) &server, sizeof(server))){
@@ -686,7 +694,7 @@ int main(void){
 	/* Start accepting connections */
 	listen(sock, 10);
 
-	int maxNoOfForks = 4;
+	int maxNoOfForks = 0;
 	int forkCount = 0;
 	int forkRes;
 	bool callAccept;
@@ -725,12 +733,13 @@ int main(void){
 		else{
 			char buff[100];
 
-			msgsock = accept(sock, 0, 0);
+			msgsock = accept(sock, (struct sockaddr *)&server,  (socklen_t*) &length);
 
 			forkRes = fork();
 
 			indexOfAcceptedClients++;
 			clients[clientsIndex].pid = forkRes;
+			clients[clientsIndex].ip = inet_ntoa(server.sin_addr);
 			clientsIndex += 1;
 			
 			if(forkRes > 0){
@@ -746,7 +755,6 @@ int main(void){
 				perror("fork() in main()");				
 			}
 		}
-		displayClientCommunicators();
 	}
 	close(sock);
 }
