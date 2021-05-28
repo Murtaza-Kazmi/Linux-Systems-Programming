@@ -78,6 +78,10 @@ int main(int argc, char *argv[]){
     const int *s = &sock;
     int  iret1, iret2;
 
+	pthread_attr_t attr;
+    int initRes = pthread_attr_init(&attr);
+	int setdetachRes = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
     iret1 = pthread_create( &thread1, NULL, read_function, (void*) s);
 
     if(iret1){
@@ -96,8 +100,11 @@ int main(int argc, char *argv[]){
     /* wait we run the risk of executing an exit which will terminate   */
     /* the process and all threads before the threads have completed.   */
 
+
+	//check
     pthread_join(thread1, NULL);
     pthread_join(thread2, NULL);
+	
 }
 
 
@@ -106,14 +113,13 @@ void *read_function( void *s ){
 	int *sockp = (int *) s;
 	int sock = *sockp;
 
-	char buff[10000];
-
-	
+	char buff[1000];
 
 	while(true){
-		for(int i = 0; i < 10000; i++){
+		for(int i = 0; i < 1000; i++){
 			buff[i] = '\0';
 		}
+
 		int readResponseResult = read(sock, buff, sizeof(buff)-1);
 
 		if(readResponseResult == 0){
@@ -122,7 +128,7 @@ void *read_function( void *s ){
 			close(sock);
 			exit(0);
 		}
-		puts(buff);
+		write(STDOUT_FILENO, buff, strlen(buff));
 	}
 }
 
