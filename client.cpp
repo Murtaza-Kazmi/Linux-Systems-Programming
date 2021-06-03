@@ -28,22 +28,10 @@ void *read_function( void *ptr );
 void *write_function( void *ptr );
 void handler (int signo);
 
-int size = 10000;
+int size = 1024;
 
 
 int main(int argc, char *argv[]){
-
-
-	struct sigaction sa;
-    sa.sa_handler = handler;
-
-	if (sigaction(SIGPIPE, &sa, 0) == -1) {
-		char buff1[30];
-		sprintf (buff1, "Cannot handle SIGPIPE!\n");
-		puts(buff1);
-		exit(EXIT_FAILURE);
-	}
-
 
 	int sock;
 	struct sockaddr_in server;
@@ -67,12 +55,16 @@ int main(int argc, char *argv[]){
 	bcopy(hp->h_addr, &server.sin_addr, hp->h_length);
 	server.sin_port = htons(atoi(argv[2]));
 
+	
 	if(connect(sock,(struct sockaddr *) &server,sizeof(server)) < 0) {
 		perror("connecting stream socket");
 		exit(1);
 	}
-
-	int size = 10000;
+	else{
+		char buffer[30];
+		sprintf(buffer, "Connection established.");
+		puts(buffer);
+	}
 	
 	pthread_t thread1, thread2;
     const int *s = &sock;
@@ -100,10 +92,9 @@ int main(int argc, char *argv[]){
     /* wait we run the risk of executing an exit which will terminate   */
     /* the process and all threads before the threads have completed.   */
 
-
-	//check
-    pthread_join(thread1, NULL);
-    pthread_join(thread2, NULL);
+	while(true){
+		continue;
+	}
 	
 }
 
@@ -113,10 +104,10 @@ void *read_function( void *s ){
 	int *sockp = (int *) s;
 	int sock = *sockp;
 
-	char buff[1000];
+	char buff[1024];
 
 	while(true){
-		for(int i = 0; i < 1000; i++){
+		for(int i = 0; i < 1024; i++){
 			buff[i] = '\0';
 		}
 
@@ -129,22 +120,25 @@ void *read_function( void *s ){
 			exit(0);
 		}
 		write(STDOUT_FILENO, buff, strlen(buff));
+		char c = '\n';
+		write(STDOUT_FILENO, &c, 1);
 	}
 }
 
 void *write_function(void *s){
 	int *sockp = (int *) s;
+
 	int sock = *sockp;
 	while(true){
 
-		char buff[10000];
+		char buff[size];
 
 		for(int i = 0; i < size; i++){
 			buff[i] = '\0';
 		}
 
 		//reads until enter, so no garbage value, truncates until character
-		int noOfBytesRead = read(0, buff, size-1);
+		int noOfBytesRead = read(0, buff, size);
 		
 		if(buff[0] == '\n'){
 			sprintf(buff, "Invalid number of arguments. Please enter again.");
@@ -155,19 +149,16 @@ void *write_function(void *s){
 		if(noOfBytesRead == -1){
 			perror(("Error in read."));
 		}
+
+		if(strcmp(buff, "exit\n") == 0){
+			exit(1);
+		}
 		
 		// send input to server (sends the bytes inputted)
 		int writeResult = write(sock, buff, noOfBytesRead-1);
 		if(writeResult < 0){
 			perror("Error in writing from server to client.");
+			exit(1);
 		}
-	}
-}
-
-void handler (int signo){
-	if(signo == SIGCHLD){
-		char buff[1000] = "Caught SIGPIPE. So connection with server is lost.\n";
-		write(1, buff, strlen(buff));
-		exit(0);
 	}
 }

@@ -54,6 +54,7 @@ void clientHandler(int sock, bool callAccept, int pid, int fdClientHandlerReads[
 void displayClientCommunicators();
 void *client_handler_thread(void* obj);
 void *serverInteractionThread(void *arg);
+void *serverInteractionThreadReader(void *arg);
 
 
 class Process {       
@@ -73,13 +74,6 @@ class Client {
 		int fdRead;
 		int fdWrite;
 		int port;
-};
-
-class fdp {
-	public:
-		int f1;
-		int f2;
-		int f3;
 };
 
 int noOfProcessesAllowed = 100;
@@ -142,9 +136,9 @@ int main(void){
 		perror("binding stream socket");
 		server.sin_port = htons(55001);
 		if (bind(sock, (struct sockaddr *) &server, sizeof(server))) {
-			server.sin_port = htons(55002);
+			server.sin_port = htons(55008);
 			if (bind(sock, (struct sockaddr *) &server, sizeof(server))){
-				server.sin_port = htons(55003);
+				server.sin_port = htons(55007);
 				if (bind(sock, (struct sockaddr *) &server, sizeof(server))){
 				exit(0);
 			}
@@ -164,7 +158,7 @@ int main(void){
 	/* Start accepting connections */
 	listen(sock, 100);
 
-	int maxNoOfForks = 0;
+	int maxNoOfForks = 2;
 	int forkCount = 0;
 	int forkRes;
 	bool callAccept;
@@ -186,6 +180,13 @@ int main(void){
         exit(EXIT_FAILURE);
     }
 
+	pthread_t thread2;
+	
+	// thread to take inputs from clientHandlers and dump on the terminal
+    pthread_create( &thread2, &attr, serverInteractionThreadReader, (void *) NULL);
+
+	char buff[100];
+
 	while(true){
 		
 		if(forkCount < maxNoOfForks){
@@ -195,28 +196,28 @@ int main(void){
 			int res = pipe(fdClientHandlerReads);
 			if(res < 0){
 				perror("pipe 1");
+				continue;
 			}
 			res = pipe(fdConnectionReads);
 			if(res < 0){
 				perror("pipe 2");
+				continue;
 			}
 
 			forkRes = fork();
 			// forkRes = fork();
 			if(forkRes > 0){
-				clients[clientsIndex].pid = forkRes;
-				// clients[clientsIndex].ip = inet_ntoa(server.sin_addr);
-				// clients[clientsIndex].port = ntohs(server.sin_port);
-				// clients[clientsIndex].sockfd = msgsock;
 				clients[clientsIndex].fdRead = fdConnectionReads[0];
 				clients[clientsIndex].fdWrite = fdClientHandlerReads[1];
-				//check: i think commented information is not being updated.
+				clients[clientsIndex].pid = forkRes;
 				clientsIndex += 1;
 				forkCount++;
 				continue;
 			}
 			else if(forkRes == 0){
 					callAccept = true;
+					sprintf(buff, "Accepting new client after fork().");
+					puts(buff);
 					clientHandler(sock, callAccept, forkRes, fdClientHandlerReads, fdConnectionReads);
 			}
 			else{
@@ -224,8 +225,7 @@ int main(void){
 			}
 		}
 		else{
-			char buff[100];
-
+			
 			msgsock = accept(sock, (struct sockaddr *)&server,  (socklen_t*) &length);
 				
 			int fdClientHandlerReads[2];
@@ -239,8 +239,7 @@ int main(void){
 				perror("pipe 2");
 			}
 
-			
-			sprintf(buff, "Accepting new client before fork().");
+			sprintf(buff, "Accepted new client before fork().");
 			puts(buff);
 
 			forkRes = fork();
@@ -258,8 +257,6 @@ int main(void){
 			else if(forkRes == 0){
 				
 				callAccept = false;
-				sprintf(buff, "Accepted new client before fork().");
-				puts(buff);
 				clientHandler(msgsock, callAccept, forkRes, fdClientHandlerReads, fdConnectionReads);
 			}
 			else{
@@ -276,7 +273,8 @@ void *serverInteractionThreadReader(void *arg){
 	{
 		struct pollfd fds[clientsIndex];
 		int ret;
-
+		
+		char temp[100];
 		for(int i = 0; i < clientsIndex; i++){
 			fds[i].fd = clients[i].fdRead;
 			fds[i].events = POLLIN;
@@ -297,8 +295,44 @@ void *serverInteractionThreadReader(void *arg){
 					perror("serverThread read()");
 				}
 				else{
-					write(1, buff, res);
-					flag = true;
+					//update list if first arg is Info, otherwise print what is received (list is printed)
+
+					char* token = strtok(buff, " ");
+					bool isInfo = true;
+					int ind = 0;
+					char *argv[20];
+					while(token != NULL) {
+						if(ind == 0){
+							if(strcmp(token, "Info") != 0){
+								isInfo = false;
+								break;
+							}
+						}
+						argv[ind] = token;
+						ind += 1;
+						token = strtok(NULL, " ");
+					}				
+					
+					if(!isInfo){
+						write(1, buff, res);
+						flag = true;
+					}
+					else{
+						//Info %d read %d write %d sock %d Port %u IP %s
+						int index = atoi(argv[1]);
+						int r = atoi(argv[3]);
+						int w = atoi(argv[5]);
+						int ms = atoi(argv[7]);
+						int p = atoi(argv[9]);
+						clients[index].ip = argv[11];
+						clients[index].port = p;
+						clients[index].sockfd = ms;
+						clients[index].fdRead = r;
+						clients[index].fdWrite = w;
+						
+						sprintf(buff, "Receiving Info %d read %d write %d sock %d Port %u IP %s", clientsIndex,clients[index].fdRead, clients[index].fdWrite, clients[index].sockfd, clients[index].port, clients[index].ip);
+						puts(buff);
+					}
 				}
 			}
 		}
@@ -313,6 +347,7 @@ void *serverInteractionThreadReader(void *arg){
 }
 
 void *serverInteractionThread(void *arg){
+
 	char buff[10000];
 	int argc;
 	char* token;
@@ -320,14 +355,6 @@ void *serverInteractionThread(void *arg){
 	char* requirement;
 	char temp[100];
 	
-	pthread_t thread;
-	pthread_attr_t attr;
-    int initRes = pthread_attr_init(&attr);
-	int setdetachRes = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-	
-	// thread to take inputs from clientHandlers and dump on the terminal
-    pthread_create( &thread, &attr, serverInteractionThreadReader, arg);
-
 	while (true){
 
 		for(int i = 0; i < 10000; i++){
@@ -384,18 +411,10 @@ void *serverInteractionThread(void *arg){
 		
 
 		if(strcmp(requirment, "exit") == 0){
-			for(int i = 0; i < clientsIndex; i++){
-				if(clients[i].pid != -1){
-					sprintf(buff, "Killing client handler with pid %d", clients[i].pid);
-					puts(buff);
-					kill(clients[clientsIndex].pid, SIGKILL);
-					sprintf(buff, "Killing client handler with pid %d", clients[i].pid);
-					puts(buff);
-				}
-			}
 			sprintf(buff, "Exiting");
-			puts(buff);
 			exit(1);
+			puts(buff);
+			
 		}
 		else if(strcmp(requirment, "list") == 0){
 			//communicate with all client_communicators and get list
@@ -477,18 +496,22 @@ void *serverInteractionThread(void *arg){
 				puts(buff);
 				continue;
 			}
-			sprintf(buff, "%s", argv[1]);
-			if(buff[strlen(buff)-1] == '\n'){
-				buff[strlen(buff)-1] = '\0';
+
+			char firstWord[100];
+			strcpy(firstWord, argv[1]);
+			puts(firstWord);
+			if(firstWord[strlen(firstWord)-1] == '\n'){
+				firstWord[strlen(firstWord)-1] = '\0';
 			}
+
 			bool digit = true;
 			bool alpha = true;
 
-			for(int j = 0; j < strlen(buff); j++){
-				if(!isdigit(buff[j])){
+			for(int j = 0; j < strlen(firstWord); j++){
+				if(!isdigit(firstWord[j])){
 					digit = false;
 				}
-				if(!isalpha(buff[j])){
+				if(!isalpha(firstWord[j])){
 					alpha = false;
 				}
 			}
@@ -682,13 +705,19 @@ void clientHandler(int sock, bool callAccept, int pid, int fdClientHandlerReads[
 	int msgsock;
 	if(callAccept){
 		msgsock = accept(sock, (struct sockaddr *)&server,  (socklen_t*) &length);
-		indexOfAcceptedClients++;
+		
 		if (msgsock == -1){
 			perror("accept");
 		}
-		char buff[100];
-		sprintf(buff, "Accepted new client after fork().");
-		puts(buff);
+		else{
+			sprintf(buff1, "Accepted new client after fork().");
+			puts(buff1);
+
+			//sending info to conn
+			sprintf(buff1, "Info %d read %d write %d sock %d Port %u IP %s", clientsIndex, fdConnectionReads[0], fdClientHandlerReads[1], msgsock, ntohs(server.sin_port), inet_ntoa(server.sin_addr));
+			write(fdConnectionReads[1], buff1, strlen(buff1));
+			puts(buff1);
+		}
 	}
 	else{
 		msgsock = sock;
@@ -702,8 +731,6 @@ void clientHandler(int sock, bool callAccept, int pid, int fdClientHandlerReads[
 	array[0]= fdClientHandlerReads[0];
 	array[1] = fdConnectionReads[1];
 	array[2] = msgsock;
-
-	fdp *param;
 
 	pthread_attr_t attr;
     int initRes = pthread_attr_init(&attr);
